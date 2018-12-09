@@ -39,18 +39,37 @@ func NewInterpreter(inque *Queue) *Interpreter {
 	return i
 }
 
+func NewDatagram() *Datagram {
+	dg := new(Datagram)
+	dg.Timestamp = time.Now()
+	dg.Status = "UNAVAILABLE"
+	return dg
+}
+
 func (i *Interpreter) start() {
 	fmt.Println("Start interpreter...")
 	//	var buffer []byte
 	buffer := make([]byte, 40, 40)
 	idx := 0
 	errCount := 0
+	emptyCount := 0
 
 	for {
 		e := i.inputQueue.Pop()
 		if e == nil {
 			// No input yet. Let's sleep...
 			time.Sleep(100 * time.Millisecond)
+
+			// If empty for long (10 seconds), clear data and lock for 5 min.
+			emptyCount = emptyCount + 1
+			if emptyCount == 100 {
+				emptyCount = 0
+				i.lock.Lock()
+				i.lastData = NewDatagram()
+				i.lock.Unlock()
+				fmt.Println("[WARN] Initiating 5 minute sleep ...")
+				time.Sleep(5 * time.Minute)
+			}
 		} else {
 			bv := e.(Element).data.(byte)
 			if bv == 0x57 && idx >= 30 {
@@ -64,7 +83,7 @@ func (i *Interpreter) start() {
 				idx = 0
 				errCount = errCount + 1
 				if errCount > 20 {
-					fmt.Println("[WARN] Sleeping for a while...")
+					fmt.Println("[WARN] Iniitiating 30 seconds sleep ...")
 					time.Sleep(30 * time.Second)
 				}
 			} else {

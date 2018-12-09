@@ -52,6 +52,24 @@ func (r *Reader) sendInitCommand(conn io.ReadWriteCloser) {
 	}
 }
 
+func (r *Reader) initLogger() {
+	options := serial.OpenOptions{
+		PortName:          r.device,
+		BaudRate:          r.speed,
+		DataBits:          8,
+		StopBits:          1,
+		ParityMode:        0,
+		MinimumReadSize:   30,
+		RTSCTSFlowControl: false,
+	}
+	conn, err := serial.Open(options)
+	if err != nil {
+		log.Fatalf("[ERROR] serial.Open: %v", err)
+	}
+	defer conn.Close()
+	r.sendInitCommand(conn)
+}
+
 func (r *Reader) start() {
 	options := serial.OpenOptions{
 		PortName:          r.device,
