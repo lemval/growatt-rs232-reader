@@ -2,7 +2,7 @@
 
 This reader allows some Growatt Inverters to publish data on a REST endpoint.
 
-Example output of ```http://127.0..0.1:5701/status```:
+Example output of ```http://127.0.0.1:5701/status```:
 ```json
 {
   "VoltagePV1": 335.8,
@@ -31,6 +31,10 @@ Currently, web port, stop bits, parity, etc. are fixed.
 ## Required
 
 You need a 'USB to serial' converter. Remove the little plate to expose the RS2323 port and connect the cable. Connect the USB-side to a Raspberry Pi or other device.
+
+## Openhab
+
+If you would like to use this as Openhab growatt publisher, use this in combination with the HTTP binding: https://www.openhab.org/addons/bindings/http1/
 
 ## Disclaimer
 
