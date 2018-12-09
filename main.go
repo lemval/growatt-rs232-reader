@@ -3,11 +3,24 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"strconv"
 	"time"
 )
 
 func main() {
-	reader := NewReader()
+	args := os.Args[1:]
+
+	var speed int
+	device := "/dev/ttyUSB0"
+	if len(args) > 0 && len(args[0]) > 0 {
+		device = args[0]
+	}
+	if len(args) > 1 && len(args[1]) > 0 {
+		speed, _ = strconv.Atoi(args[1])
+	}
+
+	reader := NewReader(device, speed)
 	interpreter := NewInterpreter(reader.getQueue())
 
 	go reader.start()
