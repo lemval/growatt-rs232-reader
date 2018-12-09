@@ -4,12 +4,15 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"sync"
 	"time"
 )
 
 type Interpreter struct {
-	inputQueue  *Queue
-	outputQueue *Queue
+	inputQueue *Queue
+	lastData   *Datagram
+	lock       *sync.Mutex
+	//	outputQueue *Queue
 }
 
 type Datagram struct {
@@ -31,7 +34,8 @@ type Datagram struct {
 func NewInterpreter(inque *Queue) *Interpreter {
 	i := new(Interpreter)
 	i.inputQueue = inque
-	i.outputQueue = NewQueue()
+	i.lock = &sync.Mutex{}
+	//	i.outputQueue = NewQueue()
 	return i
 }
 
@@ -50,8 +54,6 @@ func (i *Interpreter) start() {
 		} else {
 			bv := e.(Element).data.(byte)
 			if bv == 0x57 && idx >= 30 {
-				// TODO 0x57 might be part of the values too ...
-
 				// fmt.Println("Found datagram")
 				// fmt.Println(hex.Dump(buffer[0:idx]))
 				i.createAndStoreDatagram(buffer[0:idx])
@@ -105,7 +107,10 @@ func (i *Interpreter) createAndStoreDatagram(data []byte) {
 		dg.Status = "Fault"
 	}
 
-	i.outputQueue.Push(dg)
+	//	i.outputQueue.Push(dg)
+	i.lock.Lock()
+	i.lastData = dg
+	i.lock.Unlock()
 }
 
 func (i *Interpreter) decodeSmallValue(data byte) int {
@@ -122,11 +127,10 @@ func (i *Interpreter) decodeLargeValue(data []byte, div int) float32 {
 }
 
 func (i *Interpreter) pop() *Datagram {
-	e := i.outputQueue.Pop()
-	if e != nil {
-		return e.(Element).data.(*Datagram)
-	}
-	return nil
+	i.lock.Lock()
+	result := i.lastData
+	i.lock.Unlock()
+	return result
 }
 
 func (d Datagram) String() string {

@@ -30,10 +30,11 @@ func main() {
 	for {
 		data := interpreter.pop()
 		if data != nil {
-			// fmt.Println(data.String())
 			publisher.updateData(data)
+		} else {
+			// Only sleep if there are no datagrams currently
+			time.Sleep(500 * time.Millisecond)
 		}
-		time.Sleep(100 * time.Millisecond)
 	}
 
 }
