@@ -83,7 +83,6 @@ func (r *Reader) start() {
 		if err != nil {
 			log.Fatalf("[ERROR] serial.Read: %v", err)
 		}
-		// log.Printf("serial.Read: %d bytes", n)
 		for i := 0; i < n; i++ {
 			if buffer[i] == 0x00 {
 				zeroCounter = zeroCounter + 1

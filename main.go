@@ -2,7 +2,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"strconv"
 	"time"
@@ -22,14 +21,17 @@ func main() {
 
 	reader := NewReader(device, speed)
 	interpreter := NewInterpreter(reader.getQueue())
+	publisher := new(Publisher)
 
 	go reader.start()
 	go interpreter.start()
+	go publisher.start()
 
 	for {
 		data := interpreter.pop()
 		if data != nil {
-			fmt.Println("Got: " + data.String())
+			// fmt.Println(data.String())
+			publisher.updateData(data)
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
