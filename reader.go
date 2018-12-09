@@ -59,7 +59,7 @@ func (r *Reader) start() {
 		DataBits:          8,
 		StopBits:          1,
 		ParityMode:        0,
-		MinimumReadSize:   32,
+		MinimumReadSize:   30,
 		RTSCTSFlowControl: false,
 	}
 

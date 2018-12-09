@@ -124,8 +124,7 @@ func (i *Interpreter) decodeLargeValue(data []byte, div int) float32 {
 func (i *Interpreter) pop() *Datagram {
 	e := i.outputQueue.Pop()
 	if e != nil {
-		datagram := e.(Element).data.(*Datagram)
-		return datagram
+		return e.(Element).data.(*Datagram)
 	}
 	return nil
 }
