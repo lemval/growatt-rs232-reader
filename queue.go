@@ -21,6 +21,12 @@ func (qd *Queue) Push(data interface{}) {
 	qd.lock.Unlock()
 }
 
+func (qd *Queue) Clear() {
+	qd.lock.Lock()
+	qd.container = make([]Element, 0)
+	qd.lock.Unlock()
+}
+
 func (qd *Queue) Pop() interface{} {
 	if len(qd.container) == 0 {
 		return nil

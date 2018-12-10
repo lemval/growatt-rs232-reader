@@ -12,7 +12,7 @@ type Interpreter struct {
 	inputQueue *Queue
 	lastData   *Datagram
 	lock       *sync.Mutex
-	//	outputQueue *Queue
+	hasSlept   bool
 }
 
 type Datagram struct {
@@ -35,7 +35,7 @@ func NewInterpreter(inque *Queue) *Interpreter {
 	i := new(Interpreter)
 	i.inputQueue = inque
 	i.lock = &sync.Mutex{}
-	//	i.outputQueue = NewQueue()
+	i.hasSlept = false
 	return i
 }
 
@@ -47,8 +47,7 @@ func NewDatagram() *Datagram {
 }
 
 func (i *Interpreter) start() {
-	fmt.Println("Start interpreter...")
-	//	var buffer []byte
+	Info("Start interpreter...")
 	buffer := make([]byte, 40, 40)
 	idx := 0
 	errCount := 0
@@ -67,10 +66,15 @@ func (i *Interpreter) start() {
 				i.lock.Lock()
 				i.lastData = NewDatagram()
 				i.lock.Unlock()
-				fmt.Println("[WARN] Initiating 5 minute sleep ...")
+				Warn("Initiating 5 minute sleep ...")
 				time.Sleep(5 * time.Minute)
+				i.hasSlept = true
 			}
 		} else {
+			if i.hasSlept {
+				Info("Waking up!")
+				i.hasSlept = false
+			}
 			bv := e.(Element).data.(byte)
 			if bv == 0x57 && idx >= 30 {
 				// fmt.Println("Found datagram")
@@ -78,12 +82,12 @@ func (i *Interpreter) start() {
 				i.createAndStoreDatagram(buffer[0:idx])
 				idx = 0
 			} else if idx >= 40 {
-				fmt.Println("[WARN] Invalid data received. Retrying...")
-				fmt.Println(hex.Dump(buffer))
+				Warn("Invalid data received. Retrying...")
+				Warn(hex.Dump(buffer))
 				idx = 0
 				errCount = errCount + 1
 				if errCount > 20 {
-					fmt.Println("[WARN] Iniitiating 30 seconds sleep ...")
+					Warn("Iniitiating 30 seconds sleep ...")
 					time.Sleep(30 * time.Second)
 				}
 			} else {
@@ -97,8 +101,8 @@ func (i *Interpreter) start() {
 func (i *Interpreter) createAndStoreDatagram(data []byte) {
 	if len(data) != 30 {
 		// 11, 18, 29
-		fmt.Println("Datagram incorrect size; ignoring", len(data), "bytes ...")
-		fmt.Println(hex.Dump(data))
+		Warn("Datagram incorrect size; ignoring " + string(len(data)) + " bytes ...")
+		Warn(hex.Dump(data))
 		return
 	}
 

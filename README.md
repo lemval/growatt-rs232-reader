@@ -21,6 +21,10 @@ Example output of ```http://127.0.0.1:5701/status```:
 }
 ```
 
+## Status
+
+Attempting to get it restarted the next morning as on power down (sunset) the interface of the inverter will reset, so the init needs to be resend as soon as the inverter comes back to life. This seems to need polling, as no sign is yet detected which indicates it is powered on again.
+
 ## How to build and run:
 
 It is written in GoLang. For compilation, see the build.sh script.

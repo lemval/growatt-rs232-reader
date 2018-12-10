@@ -21,15 +21,15 @@ func main() {
 		speed, _ = strconv.Atoi(args[1])
 	}
 
+	reader := NewReader(device, speed)
+
 	if len(args) > 2 && strings.Compare("init", args[2]) == 0 {
-		fmt.Println("Init requested...")
-		reader := NewReader(device, speed)
+		Info("Init requested...")
 		reader.initLogger()
-		fmt.Println("Sent. Please restart!")
+		Info("Sent. Please restart!")
 		return
 	}
 
-	reader := NewReader(device, speed)
 	interpreter := NewInterpreter(reader.getQueue())
 	publisher := new(Publisher)
 
@@ -54,4 +54,17 @@ func main() {
 		}
 	}
 
+}
+
+func writeMessage(msg string, ctx string) {
+	now := time.Now().Format("15:04")
+	fmt.Printf("%s %s %s\n", now, ctx, msg)
+}
+
+func Warn(msg string) {
+	writeMessage(msg, "[WARN]")
+}
+
+func Info(msg string) {
+	writeMessage(msg, "[INFO]")
 }
