@@ -36,7 +36,7 @@ func (r *Reader) getQueue() *Queue {
 	return r.dataqueue
 }
 
-func (r *Reader) sendInitCommand(conn io.ReadWriteCloser) {
+func (r *Reader) sendInitCommand(conn io.ReadWriteCloser, silent bool) {
 	initString1 := []byte{0x3F, 0x23, 0x7E, 0x34, 0x41, 0x7E, 0x32, 0x59, 0x35, 0x30, 0x30, 0x30, 0x23, 0x3F}
 	initString2 := []byte{0x3F, 0x23, 0x7E, 0x34, 0x42, 0x7E, 0x23, 0x3F}
 
@@ -52,12 +52,14 @@ func (r *Reader) sendInitCommand(conn io.ReadWriteCloser) {
 		log.Fatalf("[ERROR] serial.sendInitCommand: %v", err2)
 	}
 
+	//	if !silent {
 	Info("Sent init command to Growatt inverter.")
+	//	}
 
 	time.Sleep(250 * time.Millisecond)
 }
 
-func (r *Reader) initLogger() {
+func (r *Reader) initLogger(silent bool) {
 	options := serial.OpenOptions{
 		PortName:          r.device,
 		BaudRate:          r.speed,
@@ -72,26 +74,34 @@ func (r *Reader) initLogger() {
 		log.Fatalf("[ERROR] serial.Open: %v", err)
 	}
 	defer conn.Close()
-	r.sendInitCommand(conn)
+	r.sendInitCommand(conn, silent)
 }
 
-func (r *Reader) monitorConnection() {
+// func (r *Reader) monitorConnection() {
 
-	for r.started == true {
-		span := time.Now().Sub(r.lastUpdate)
+// 	for r.started == true {
+// 		span := time.Now().Sub(r.lastUpdate)
 
-		if span > 5*time.Minute {
-			r.lastUpdate = time.Now()
-			Warn("Closing overdue connection and restarting...")
-			r.connection.Close()
-			r.initLogger()
-			r.start()
-		}
-		time.Sleep(1 * time.Minute)
+// 		if span > 5*time.Minute {
+// 			r.lastUpdate = time.Now()
+// 			Warn("Closing overdue connection and restarting...")
+// 			r.connection.Close()
+// 			r.initLogger(true)
+// 			r.start(true)
+// 		}
+// 		time.Sleep(1 * time.Minute)
+// 	}
+// 	Warn("Reader stopped...")
+// }
+
+func (r *Reader) startMonitored() {
+	for {
+		Info("Serial reader starting.")
+		r.start(false)
 	}
 }
 
-func (r *Reader) start() {
+func (r *Reader) start(silent bool) {
 
 	r.started = true
 
@@ -106,7 +116,9 @@ func (r *Reader) start() {
 		RTSCTSFlowControl: false,
 	}
 
-	Info(fmt.Sprintf("Connecting to %v [%v,8,N,1]", r.device, r.speed))
+	if !silent {
+		Info(fmt.Sprintf("Connecting to %v [%v,8,N,1]", r.device, r.speed))
+	}
 
 	// Open the port.
 	conn, err := serial.Open(options)
@@ -118,24 +130,34 @@ func (r *Reader) start() {
 	// Make sure to close it later.
 	defer r.connection.Close()
 
-	go r.monitorConnection()
+	// go r.monitorConnection()
 
 	var buffer []byte
-	buffer = make([]byte, 30)
+	buffer = make([]byte, 16)
 	zeroCounter := 0
 	for {
 		n, err := conn.Read(buffer)
 		if err != nil {
-			log.Fatalf("[ERROR] serial.Read: %v", err)
+			Warn("Reading failed due to: " + err.Error())
+			break
+		}
+
+		fmt.Print(".")
+
+		span := time.Now().Sub(r.lastUpdate)
+		if span > 5*time.Minute {
+			Warn("Respawning...")
+			r.sendInitCommand(conn, false)
 		}
 		r.lastUpdate = time.Now()
+
 		for i := 0; i < n; i++ {
 			if buffer[i] == 0x00 {
 				zeroCounter = zeroCounter + 1
 				if zeroCounter > 200 {
 					Warn("Reinitialising connection (and cleaning buffer)...")
 					r.dataqueue.Clear()
-					r.sendInitCommand(conn)
+					r.sendInitCommand(conn, false)
 				}
 			} else {
 				zeroCounter = 0

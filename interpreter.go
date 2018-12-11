@@ -63,10 +63,14 @@ func (i *Interpreter) start() {
 			emptyCount = emptyCount + 1
 			if emptyCount == 100 {
 				emptyCount = 0
+				if !i.hasSlept {
+					Warn("Initiating sleep mode ...")
+				}
+				// Update to an empty datagram with updated time
 				i.lock.Lock()
 				i.lastData = NewDatagram()
 				i.lock.Unlock()
-				Warn("Initiating 5 minute sleep ...")
+				// Sleep
 				time.Sleep(5 * time.Minute)
 				i.hasSlept = true
 			}
@@ -87,7 +91,7 @@ func (i *Interpreter) start() {
 				idx = 0
 				errCount = errCount + 1
 				if errCount > 20 {
-					Warn("Iniitiating 30 seconds sleep ...")
+					Warn("Initiating 30 seconds sleep ...")
 					time.Sleep(30 * time.Second)
 				}
 			} else {

@@ -25,7 +25,7 @@ func main() {
 
 	if len(args) > 2 && strings.Compare("init", args[2]) == 0 {
 		Info("Init requested...")
-		reader.initLogger()
+		reader.initLogger(false)
 		Info("Sent. Please restart!")
 		return
 	}
@@ -33,7 +33,7 @@ func main() {
 	interpreter := NewInterpreter(reader.getQueue())
 	publisher := new(Publisher)
 
-	go reader.start()
+	go reader.startMonitored()
 	go interpreter.start()
 	go publisher.start()
 
@@ -53,7 +53,6 @@ func main() {
 			sleepInduced = true
 		}
 	}
-
 }
 
 func writeMessage(msg string, ctx string) {

@@ -40,6 +40,26 @@ You need a 'USB to serial' converter. Remove the little plate to expose the RS23
 
 If you would like to use this as Openhab growatt publisher, use this in combination with the HTTP binding: https://www.openhab.org/addons/bindings/http1/
 
+In your ```services/http.cfg```, add the following:
+```
+growatt.url=http://127.0.0.1:5701/status
+growatt.updateInterval=5000
+```
+
+Create an ```items/growatt.items``` with the following content:
+```
+Number Growatt_PvVoltage       "PV voltage [%.1f V]"           { http="<[growatt:5000:JSONPATH($.VoltagePV1)]" }
+Number Growatt_GridVoltage     "Net voltage [%.1f V]"          { http="<[growatt:5000:JSONPATH($.VoltageGrid)]" }
+Number Growatt_TotalProduction "Production overall [%.1f kWh]" { http="<[growatt:5000:JSONPATH($.TotalProduction)]" }
+Number Growatt_DayProduction   "Production today: [%.1f kWh]"  { http="<[growatt:5000:JSONPATH($.DayProduction)]" }
+Number Growatt_Frequency       "Net frequency [%.1f Hz]"       { http="<[growatt:5000:JSONPATH($.Frequency)]" }
+Number Growatt_Power           "Current power [%.1f W]"        { http="<[growatt:5000:JSONPATH($.Power)]" }
+String Growatt_Status          "Status [%s]"                   { http="<[growatt:5000:JSONPATH($.Status)]" }
+String Growatt_Update          "Updated: [%s]"                 { http="<[growatt:5000:JSONPATH($.Timestamp)]" }
+```
+
+Install the JSsonPath transformation plugin.
+
 ## Disclaimer
 
 No, this isn't production ready quality code. See License.
