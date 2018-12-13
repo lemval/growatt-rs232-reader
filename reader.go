@@ -42,14 +42,19 @@ func (r *Reader) sendInitCommand(conn io.ReadWriteCloser, silent bool) {
 
 	_, err1 := conn.Write(initString1)
 	if err1 != nil {
-		log.Fatalf("[ERROR] serial.sendInitCommand: %v", err1)
+		log.Fatalf("[ERROR] serial.sendInitCommand [1]: %v", err1)
 	}
 
-	time.Sleep(100 * time.Millisecond)
-
-	_, err2 := conn.Write(initString2)
+	// Read the arbitrarily data until InterCharacterTimeout
+	buffer := make([]byte, 256)
+	_, err2 := conn.Read(buffer)
 	if err2 != nil {
-		log.Fatalf("[ERROR] serial.sendInitCommand: %v", err2)
+		log.Fatalf("[ERROR] serial.sendInitCommand [2]: %v", err2)
+	}
+
+	_, err3 := conn.Write(initString2)
+	if err3 != nil {
+		log.Fatalf("[ERROR] serial.sendInitCommand [3]: %v", err3)
 	}
 
 	//	if !silent {
@@ -61,13 +66,14 @@ func (r *Reader) sendInitCommand(conn io.ReadWriteCloser, silent bool) {
 
 func (r *Reader) initLogger(silent bool) {
 	options := serial.OpenOptions{
-		PortName:          r.device,
-		BaudRate:          r.speed,
-		DataBits:          8,
-		StopBits:          1,
-		ParityMode:        0,
-		MinimumReadSize:   30,
-		RTSCTSFlowControl: false,
+		PortName:              r.device,
+		BaudRate:              r.speed,
+		DataBits:              8,
+		StopBits:              1,
+		ParityMode:            0,
+		MinimumReadSize:       30,
+		InterCharacterTimeout: 20,
+		RTSCTSFlowControl:     false,
 	}
 	conn, err := serial.Open(options)
 	if err != nil {
@@ -132,8 +138,7 @@ func (r *Reader) start(silent bool) {
 
 	// go r.monitorConnection()
 
-	var buffer []byte
-	buffer = make([]byte, 16)
+	buffer := make([]byte, 16)
 	zeroCounter := 0
 	for {
 		n, err := conn.Read(buffer)
