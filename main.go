@@ -10,6 +10,8 @@ import (
 )
 
 func main() {
+	//	Read the command line arguments for port and speed
+
 	args := os.Args[1:]
 
 	var speed int
@@ -21,8 +23,13 @@ func main() {
 		speed, _ = strconv.Atoi(args[1])
 	}
 
+	// Initialize the reader
+	
 	reader := NewReader(device, speed)
 
+	//	Handle the 'init' command to to send the message to
+	//	start the logging of the data.
+	
 	if len(args) > 2 && strings.Compare("init", args[2]) == 0 {
 		Info("Init requested...")
 		reader.initLogger(false)
@@ -30,6 +37,9 @@ func main() {
 		return
 	}
 
+	// Initialize the interpreter and publisher and start all threads to
+	// read data, interpret to datagrams and publish as json
+	
 	interpreter := NewInterpreter(reader.getQueue())
 	publisher := new(Publisher)
 

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sync"
 	"time"
+	"strconv"
 )
 
 type Interpreter struct {
@@ -46,6 +47,11 @@ func NewDatagram() *Datagram {
 	return dg
 }
 
+/*
+	Reads from the input queue until a valid size block has been read
+	for creating a datagram. It will go into sleep mode if no data is
+	received within several seconds. 
+*/
 func (i *Interpreter) start() {
 	Info("Start interpreter...")
 	buffer := make([]byte, 40, 40)
@@ -75,6 +81,8 @@ func (i *Interpreter) start() {
 				i.hasSlept = true
 			}
 		} else {
+			emptyCount = 0
+			
 			if i.hasSlept {
 				Info("Waking up!")
 				i.hasSlept = false
@@ -102,10 +110,13 @@ func (i *Interpreter) start() {
 	}
 }
 
+/*
+	Processes the 30 bytes to a valid datagram. If less or more bytes are
+	given, an error is produced and the data is dumped on screen.
+*/
 func (i *Interpreter) createAndStoreDatagram(data []byte) {
 	if len(data) != 30 {
-		// 11, 18, 29
-		Warn("Datagram incorrect size; ignoring " + string(len(data)) + " bytes ...")
+		Warn("Datagram incorrect size; ignoring " + strconv.Itoa(len(data)) + " bytes ...")
 		Warn(hex.Dump(data))
 		return
 	}
@@ -134,25 +145,12 @@ func (i *Interpreter) createAndStoreDatagram(data []byte) {
 		dg.Status = "Fault"
 	}
 
-	//	i.outputQueue.Push(dg)
 	i.lock.Lock()
 	i.lastData = dg
 	i.lock.Unlock()
 }
 
-func (i *Interpreter) decodeSmallValue(data byte) int {
-	return int(data)
-}
-
-func (i *Interpreter) decodeValue(msw byte, lsw byte, div int) float32 {
-	return float32((int(msw)*256 + int(lsw))) / float32(div)
-}
-
-func (i *Interpreter) decodeLargeValue(data []byte, div int) float32 {
-	return float32(i.decodeValue(data[0], data[1], 1)*65536+
-		i.decodeValue(data[2], data[3], 1)) / float32(div)
-}
-
+/* Retrieves the latest datagram as interpreted. */
 func (i *Interpreter) pop() *Datagram {
 	i.lock.Lock()
 	result := i.lastData
@@ -160,6 +158,23 @@ func (i *Interpreter) pop() *Datagram {
 	return result
 }
 
+/* Convert single byte to integer */
+func (i *Interpreter) decodeSmallValue(data byte) int {
+	return int(data)
+}
+
+/* Convert double byte to integer */
+func (i *Interpreter) decodeValue(msw byte, lsw byte, div int) float32 {
+	return float32((int(msw)*256 + int(lsw))) / float32(div)
+}
+
+/* Convert quad byte to integer */
+func (i *Interpreter) decodeLargeValue(data []byte, div int) float32 {
+	return float32(i.decodeValue(data[0], data[1], 1)*65536+
+		i.decodeValue(data[2], data[3], 1)) / float32(div)
+}
+
+/* Datagram to string function */
 func (d Datagram) String() string {
 	result, _ := json.Marshal(d)
 	return fmt.Sprintf("[Datagram] %v", string(result))

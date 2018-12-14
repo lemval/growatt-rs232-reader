@@ -7,10 +7,20 @@ type Element struct {
 }
 
 type Queue struct {
-	lock      *sync.Mutex
-	container []Element
+	lock      *sync.Mutex		// Parameter to add call synchronisation
+	container []Element			// Holder of all elements in the queue
 }
 
+func NewQueue() *Queue {
+	qd := new(Queue)
+	qd.lock = &sync.Mutex{}
+
+	return qd
+}
+
+/*
+	Push any element on the queue. Synchronized add to end.
+*/
 func (qd *Queue) Push(data interface{}) {
 	qd.lock.Lock()
 
@@ -21,12 +31,19 @@ func (qd *Queue) Push(data interface{}) {
 	qd.lock.Unlock()
 }
 
+/*
+	Clear the queue.
+*/
 func (qd *Queue) Clear() {
 	qd.lock.Lock()
 	qd.container = make([]Element, 0)
 	qd.lock.Unlock()
 }
 
+/*
+	Pop the first added element off the queue. Nil if empty.
+	Note this is FIFO (first in first out) behavior. 
+*/
 func (qd *Queue) Pop() interface{} {
 	if len(qd.container) == 0 {
 		return nil
@@ -38,11 +55,4 @@ func (qd *Queue) Pop() interface{} {
 	qd.lock.Unlock()
 
 	return r
-}
-
-func NewQueue() *Queue {
-	qd := new(Queue)
-	qd.lock = &sync.Mutex{}
-
-	return qd
 }
