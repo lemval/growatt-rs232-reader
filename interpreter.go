@@ -4,9 +4,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
-	"strconv"
 )
 
 type Interpreter struct {
@@ -19,14 +19,14 @@ type Interpreter struct {
 type Datagram struct {
 	VoltagePV1      float32
 	VoltagePV2      float32
-	VoltageBus      float32
-	VoltageGrid     float32
-	TotalProduction float32
-	DayProduction   float32
-	Frequency       float32
-	Power           float32
-	Temperature     float32
-	OperationHours  float32
+	VoltageBus      float32 `json:",omitempty"`
+	VoltageGrid     float32 `json:",omitempty"`
+	TotalProduction float32 `json:",omitempty"`
+	DayProduction   float32 `json:",omitempty"`
+	Frequency       float32 `json:",omitempty"`
+	Power           float32 `json:",omitempty"`
+	Temperature     float32 `json:",omitempty"`
+	OperationHours  float32 `json:",omitempty"`
 	Status          string
 	FaultCode       int
 	Timestamp       time.Time
@@ -43,14 +43,14 @@ func NewInterpreter(inque *Queue) *Interpreter {
 func NewDatagram() *Datagram {
 	dg := new(Datagram)
 	dg.Timestamp = time.Now()
-	dg.Status = "UNAVAILABLE"
+	dg.Status = "Unavailable"
 	return dg
 }
 
 /*
 	Reads from the input queue until a valid size block has been read
 	for creating a datagram. It will go into sleep mode if no data is
-	received within several seconds. 
+	received within several seconds.
 */
 func (i *Interpreter) start() {
 	Info("Start interpreter...")
@@ -72,35 +72,36 @@ func (i *Interpreter) start() {
 				if !i.hasSlept {
 					Warn("Initiating sleep mode ...")
 				}
-				// Update to an empty datagram with updated time
-				i.lock.Lock()
-				i.lastData = NewDatagram()
-				i.lock.Unlock()
+
+				i.updateToDatagram()
+
 				// Sleep
 				time.Sleep(5 * time.Minute)
 				i.hasSlept = true
 			}
 		} else {
 			emptyCount = 0
-			
+
 			if i.hasSlept {
 				Info("Waking up!")
 				i.hasSlept = false
 			}
 			bv := e.(Element).data.(byte)
 			if bv == 0x57 && idx >= 30 {
-				// fmt.Println("Found datagram")
-				// fmt.Println(hex.Dump(buffer[0:idx]))
 				i.createAndStoreDatagram(buffer[0:idx])
 				idx = 0
 			} else if idx >= 40 {
 				Warn("Invalid data received. Retrying...")
+
+				i.updateToDatagram("InvalidData")
+
 				Warn(hex.Dump(buffer))
 				idx = 0
 				errCount = errCount + 1
 				if errCount > 20 {
 					Warn("Initiating 30 seconds sleep ...")
 					time.Sleep(30 * time.Second)
+					errCount = 0
 				}
 			} else {
 				buffer[idx] = bv
@@ -110,6 +111,16 @@ func (i *Interpreter) start() {
 	}
 }
 
+func (i *Interpreter) updateToDatagram(status ...string) {
+	// Update to an empty datagram with updated time
+	i.lock.Lock()
+	i.lastData = NewDatagram()
+	if status != nil && len(status) > 0 {
+		i.lastData.Status = status[0]
+	}
+	i.lock.Unlock()
+}
+
 /*
 	Processes the 30 bytes to a valid datagram. If less or more bytes are
 	given, an error is produced and the data is dumped on screen.
@@ -117,7 +128,7 @@ func (i *Interpreter) start() {
 func (i *Interpreter) createAndStoreDatagram(data []byte) {
 	if len(data) != 30 {
 		Warn("Datagram incorrect size; ignoring " + strconv.Itoa(len(data)) + " bytes ...")
-		Warn(hex.Dump(data))
+		// Warn(hex.Dump(data))
 		return
 	}
 
