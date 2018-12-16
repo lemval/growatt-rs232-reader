@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -17,6 +16,7 @@ type Interpreter struct {
 }
 
 type Datagram struct {
+	Power           float32
 	VoltagePV1      float32
 	VoltagePV2      float32
 	VoltageBus      float32 `json:",omitempty"`
@@ -24,7 +24,6 @@ type Datagram struct {
 	TotalProduction float32 `json:",omitempty"`
 	DayProduction   float32 `json:",omitempty"`
 	Frequency       float32 `json:",omitempty"`
-	Power           float32 `json:",omitempty"`
 	Temperature     float32 `json:",omitempty"`
 	OperationHours  float32 `json:",omitempty"`
 	Status          string
@@ -95,7 +94,6 @@ func (i *Interpreter) start() {
 
 				i.updateToDatagram("InvalidData")
 
-				Warn(hex.Dump(buffer))
 				idx = 0
 				errCount = errCount + 1
 				if errCount > 20 {
