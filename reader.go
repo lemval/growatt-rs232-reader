@@ -17,11 +17,15 @@ type Reader struct {
 	lastUpdate time.Time
 }
 
+/*
+    Create a new reader on device/port. Baud rate defaults to 9600
+	if too low [<110]. The read queue is maxed to 100K bytes.
+*/
 func NewReader(device string, speed int) *Reader {
 	r := new(Reader)
 	r.device = device
 	r.speed = uint(speed)
-	if r.speed == 0 {
+	if r.speed < 110 {
 		r.speed = 9600
 	}
 	// Use a queue for 100K bytes
@@ -31,6 +35,9 @@ func NewReader(device string, speed int) *Reader {
 	return r
 }
 
+/*
+	Get a pointer to the queue for reading
+*/
 func (r *Reader) getQueue() *Queue {
 	return r.dataqueue
 }
@@ -140,7 +147,7 @@ func (r *Reader) start() bool {
 			reading = true
 			Info("Reading started with " + strconv.Itoa(n) + " bytes.")
 		}
-		Info("Read bytes and pushing: " + strconv.Itoa(n))
+		// Info("Read bytes and pushing: " + strconv.Itoa(n))
 		for i := 0; i < n; i++ {
 			r.dataqueue.Push(buffer[i])
 		}

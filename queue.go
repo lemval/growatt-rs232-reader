@@ -35,6 +35,8 @@ func (qd *Queue) Push(data interface{}) {
 	element.data = data
 	qd.container = append(qd.container, *element)
 	qd.counter = qd.counter + 1
+	
+	// Shrink if needed with a third of the current size
 	if qd.counter > qd.maxSize {
 		shrinkSize := len(qd.container) / 3
 		qd.container = qd.container[shrinkSize:]

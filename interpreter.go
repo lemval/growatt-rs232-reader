@@ -1,7 +1,7 @@
 package main
 
 import (
-	"encoding/hex"
+	// "encoding/hex"
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -94,7 +94,7 @@ func (i *Interpreter) start() {
 				i.updateToDatagram("InvalidData")
 
 				// Debug information
-				Warn(hex.Dump(buffer[0:idx]))
+				// Warn(hex.Dump(buffer[0:idx]))
 
 				idx = 0
 				errCount = errCount + 1
