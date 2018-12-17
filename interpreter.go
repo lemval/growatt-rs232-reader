@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -90,16 +91,20 @@ func (i *Interpreter) start() {
 				i.createAndStoreDatagram(buffer[0:idx])
 				idx = 0
 			} else if idx >= 40 {
-				Warn("Invalid data received. Retrying...")
-
 				i.updateToDatagram("InvalidData")
+
+				// Debug information
+				Warn(hex.Dump(buffer[0:idx]))
 
 				idx = 0
 				errCount = errCount + 1
 				if errCount > 20 {
-					Warn("Initiating 30 seconds sleep ...")
-					time.Sleep(30 * time.Second)
+					Warn("Invalid data received. Waiting...")
+					time.Sleep(5 * time.Minute)
+					i.inputQueue.Clear()
 					errCount = 0
+				} else {
+					Warn("Invalid data received. Retrying...")
 				}
 			} else {
 				buffer[idx] = bv

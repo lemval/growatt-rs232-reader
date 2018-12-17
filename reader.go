@@ -24,7 +24,8 @@ func NewReader(device string, speed int) *Reader {
 	if r.speed == 0 {
 		r.speed = 9600
 	}
-	r.dataqueue = NewQueue()
+	// Use a queue for 100K bytes
+	r.dataqueue = NewQueue(100000)
 	r.lastUpdate = time.Now()
 
 	return r
@@ -81,7 +82,8 @@ func (r *Reader) initLogger(silent bool) {
 	buffer := make([]byte, 256)
 	_, err2 := conn.Read(buffer)
 	if err2 != nil {
-		log.Fatalf("[ERROR] serial.sendInitCommand [2]: %v", err2)
+		// Could be EOF. Just ignore and stop.
+		Warn("Init not accepted: " + err2.Error())
 	}
 	_, err3 := conn.Write(initString2)
 	if err3 != nil {
@@ -118,7 +120,7 @@ func (r *Reader) start() bool {
 
 	reading := false
 
-	buffer := make([]byte, 512)
+	buffer := make([]byte, 30)
 	for {
 		n, err := conn.Read(buffer)
 		if err != nil {
@@ -138,6 +140,7 @@ func (r *Reader) start() bool {
 			reading = true
 			Info("Reading started with " + strconv.Itoa(n) + " bytes.")
 		}
+		Info("Read bytes and pushing: " + strconv.Itoa(n))
 		for i := 0; i < n; i++ {
 			r.dataqueue.Push(buffer[i])
 		}
