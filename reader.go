@@ -2,7 +2,9 @@
 package main
 
 import (
+	"encoding/hex"
 	"fmt"
+	"io"
 	"log"
 	"strconv"
 	"time"
@@ -50,7 +52,10 @@ func (r *Reader) startMonitored() {
 	for {
 		Info("Serial reader starting.")
 		if r.start() {
-			r.initLogger(false)
+			status := r.initLogger(false)
+			if !status {
+				time.Sleep(10 * time.Minute)
+			}
 		}
 	}
 }
@@ -60,7 +65,7 @@ func (r *Reader) startMonitored() {
 	inverter to start sending the datagram	data. It *should* only send
 	every 1.5 seconds, but currently I receive data continuously.
 */
-func (r *Reader) initLogger(silent bool) {
+func (r *Reader) initLogger(silent bool) bool {
 	Info("Inverter about to be initialed...")
 	options := serial.OpenOptions{
 		PortName:              r.device,
@@ -77,28 +82,40 @@ func (r *Reader) initLogger(silent bool) {
 	}
 	defer conn.Close()
 
-	initString1 := []byte{0x3F, 0x23, 0x7E, 0x34, 0x41, 0x7E, 0x32, 0x59, 0x31, 0x35, 0x30, 0x30, 0x23, 0x3F}
-	initString2 := []byte{0x3F, 0x23, 0x7E, 0x34, 0x42, 0x7E, 0x23, 0x3F}
+	var status bool
 
-	_, err1 := conn.Write(initString1)
-	if err1 != nil {
-		log.Fatalf("[ERROR] serial.sendInitCommand [1]: %v", err1)
+	status = r.sendCommand(conn, "Init", []byte{
+		0x3F, 0x23, 0x7E, 0x34, 0x41, 0x7E, 0x32,
+		0x59, 0x31, 0x35, 0x30, 0x30, 0x23, 0x3F})
+
+	if !status {
+		return false
 	}
+
+	status = r.sendCommand(conn, "Commit", []byte{
+		0x3F, 0x23, 0x7E, 0x34, 0x42, 0x7E, 0x23, 0x3F})
+
+	Info("Sent init command to Growatt inverter.")
+	return status
+}
+
+func (r *Reader) sendCommand(conn io.ReadWriteCloser, task string, data []byte) bool {
+	_, err1 := conn.Write(data)
+	if err1 != nil {
+		log.Fatalf("[ERROR] serial.sendCommand: %v", err1)
+	}
+	time.Sleep(250 * time.Millisecond)
 
 	// Read the arbitrarily data until InterCharacterTimeout
 	buffer := make([]byte, 256)
-	_, err2 := conn.Read(buffer)
+	size, err2 := conn.Read(buffer)
 	if err2 != nil {
-		// Could be EOF. Just ignore and stop.
-		Warn("Init not accepted: " + err2.Error())
+		Warn(task + " not accepted: " + err2.Error())
+		return false
 	}
-	_, err3 := conn.Write(initString2)
-	if err3 != nil {
-		log.Fatalf("[ERROR] serial.sendInitCommand [3]: %v", err3)
-	}
-
-	time.Sleep(250 * time.Millisecond)
-	Info("Sent init command to Growatt inverter.")
+	Verbose("Reading size of send command: " + strconv.Itoa(size))
+	Verbose(hex.Dump(buffer[0:size]))
+	return true
 }
 
 /*
@@ -136,18 +153,21 @@ func (r *Reader) start() bool {
 		}
 
 		span := time.Now().Sub(r.lastUpdate)
+		r.lastUpdate = time.Now()
 		if span > 5*time.Minute {
+			fmt.Println()
 			Warn("Respawning...")
 			r.dataqueue.Clear()
 			return true
 		}
-		r.lastUpdate = time.Now()
 
 		if !reading {
 			reading = true
 			Info("Reading started with " + strconv.Itoa(n) + " bytes.")
 		}
-		// Info("Read bytes and pushing: " + strconv.Itoa(n))
+
+		Verbose("Read bytes and pushing: " + strconv.Itoa(n))
+
 		for i := 0; i < n; i++ {
 			r.dataqueue.Push(buffer[i])
 		}

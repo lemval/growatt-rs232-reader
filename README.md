@@ -29,9 +29,11 @@ Attempting to get it restarted the next morning as on power down (sunset) the in
 
 It is written in GoLang. For compilation, see the build.sh script.
 
-Run as ```./growatt /dev/ttyUSB0 9600``` or without any arguments to use the default shown.
-Currently, web port, stop bits, parity, etc. are fixed.
+Run as ```./growatt --device /dev/ttyUSB0 --baudrate 9600``` or without any arguments to use the default shown.
+Currently, stop bits, parity, etc. are fixed.
 
+If you want to initialise the inverter manually, use ```./growatt --action Init```.
+ 
 ## Required
 
 You need a 'USB to serial' converter. Remove the little plate to expose the RS2323 port and connect the cable. Connect the USB-side to a Raspberry Pi or other device.

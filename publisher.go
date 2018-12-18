@@ -11,7 +11,8 @@ import (
 )
 
 type Publisher struct {
-	data *Datagram // type var for data to be published
+	data  *Datagram // type var for data to be published
+	empty bool
 }
 
 /*
@@ -28,13 +29,15 @@ func (p *Publisher) start(port int) {
 }
 
 /*
-	Update the latest state. Use 'nil' to clean the old one
+	Update the latest state. Use 'nil' to clean the old one (unless previously nil)
 */
 func (p *Publisher) updateData(data *Datagram) {
 	if data != nil {
 		p.data = data
-	} else {
+		p.empty = false
+	} else if !p.empty {
 		p.data = NewDatagram()
+		p.empty = true
 	}
 }
 

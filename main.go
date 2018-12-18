@@ -15,12 +15,14 @@ var speed int
 var port int
 var device string
 var action string
+var verbose bool
 
 func init() {
 	flag.StringVar(&action, "action", "Start", "The action (Start or Init).")
 	flag.StringVar(&device, "device", "/dev/ttyUSB0", "The serial port descriptor.")
 	flag.IntVar(&speed, "baudrate", 9600, "The baud rate of the serial connection.")
 	flag.IntVar(&port, "server", 5701, "The server port for the REST service.")
+	flag.BoolVar(&verbose, "v", false, "Activate verbose logging.")
 }
 
 func main() {
@@ -48,8 +50,12 @@ func main() {
 
 func actionInit(reader *Reader) {
 	Info("Init requested...")
-	reader.initLogger(false)
-	Info("Sent. Please restart!")
+	status := reader.initLogger(false)
+	if status {
+		Info("Sent. Please restart!")
+	} else {
+		Warn("Failed. Please retry!")
+	}
 }
 
 func actionStart(reader *Reader) {
@@ -64,20 +70,16 @@ func actionStart(reader *Reader) {
 	go interpreter.start()
 	go publisher.start(port)
 
-	sleepInduced := false
-
 	for {
 		data := interpreter.pop()
 		if data != nil {
-			sleepInduced = false
+			Verbose("Valid datagram: " + data.Status)
 			publisher.updateData(data)
 		} else {
-			if sleepInduced {
-				publisher.updateData(nil)
-			}
+			Verbose("Datagram missing")
+			publisher.updateData(nil)
 			// Only sleep if there are no datagrams currently
-			time.Sleep(500 * time.Millisecond)
-			sleepInduced = true
+			time.Sleep(10 * time.Second)
 		}
 	}
 }
@@ -93,4 +95,10 @@ func Warn(msg string) {
 
 func Info(msg string) {
 	writeMessage(msg, "[INFO]")
+}
+
+func Verbose(msg string) {
+	if verbose {
+		writeMessage(msg, "[DEBUG]")
+	}
 }

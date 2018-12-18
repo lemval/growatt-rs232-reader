@@ -1,7 +1,7 @@
 package main
 
 import (
-	// "encoding/hex"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -42,7 +42,7 @@ func NewInterpreter(inque *Queue) *Interpreter {
 
 func NewDatagram() *Datagram {
 	dg := new(Datagram)
-	dg.Timestamp = time.Now()
+	dg.Timestamp = time.Now().Round(time.Second)
 	dg.Status = "Unavailable"
 	return dg
 }
@@ -72,7 +72,6 @@ func (i *Interpreter) start() {
 				if !i.hasSlept {
 					Warn("Initiating sleep mode ...")
 				}
-
 				i.updateToDatagram()
 
 				// Sleep
@@ -93,8 +92,7 @@ func (i *Interpreter) start() {
 			} else if idx >= 40 {
 				i.updateToDatagram("InvalidData")
 
-				// Debug information
-				// Warn(hex.Dump(buffer[0:idx]))
+				Verbose(hex.Dump(buffer[0:idx]))
 
 				idx = 0
 				errCount = errCount + 1
@@ -131,7 +129,7 @@ func (i *Interpreter) updateToDatagram(status ...string) {
 func (i *Interpreter) createAndStoreDatagram(data []byte) {
 	if len(data) != 30 {
 		Warn("Datagram incorrect size; ignoring " + strconv.Itoa(len(data)) + " bytes ...")
-		// Warn(hex.Dump(data))
+		Verbose(hex.Dump(data))
 		return
 	}
 
@@ -164,10 +162,11 @@ func (i *Interpreter) createAndStoreDatagram(data []byte) {
 	i.lock.Unlock()
 }
 
-/* Retrieves the latest datagram as interpreted. */
+/* Retrieves the latest datagram as interpreted and removes it. */
 func (i *Interpreter) pop() *Datagram {
 	i.lock.Lock()
 	result := i.lastData
+	i.lastData = nil
 	i.lock.Unlock()
 	return result
 }
