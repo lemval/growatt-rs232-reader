@@ -54,6 +54,7 @@ func (r *Reader) startMonitored() {
 		if r.start() {
 			status := r.initLogger(false)
 			if !status {
+				r.dataqueue.Clear()
 				time.Sleep(10 * time.Minute)
 			}
 		}
@@ -107,12 +108,33 @@ func (r *Reader) sendCommand(conn io.ReadWriteCloser, task string, data []byte) 
 	time.Sleep(250 * time.Millisecond)
 
 	// Read the arbitrarily data until InterCharacterTimeout
-	buffer := make([]byte, 256)
+	buffer := make([]byte, 64)
 	size, err2 := conn.Read(buffer)
 	if err2 != nil {
 		Warn(task + " not accepted: " + err2.Error())
 		return false
 	}
+	if size == 0 {
+		Warn(task + " not accepted: Empty response.")
+		return false
+	}
+
+	// If all fields are ff the system isn't started yet.
+	// If all fields are de the system is shutting down.
+	equal := true
+	first := buffer[0]
+	for i := 1; i < size; i++ {
+		if buffer[i] != first {
+			equal = false
+			break
+		}
+	}
+
+	if equal {
+		Warn(task + " not accepted: Code " + string(first) + ".")
+		return false
+	}
+
 	Verbose("Reading size of send command: " + strconv.Itoa(size))
 	Verbose(hex.Dump(buffer[0:size]))
 	return true
@@ -166,7 +188,8 @@ func (r *Reader) start() bool {
 			Info("Reading started with " + strconv.Itoa(n) + " bytes.")
 		}
 
-		Verbose("Read bytes and pushing: " + strconv.Itoa(n))
+		// TODO Error because it keeps on reading and getting data. How to stop it?
+		// Verbose("Read bytes and pushing: " + strconv.Itoa(n))
 
 		for i := 0; i < n; i++ {
 			r.dataqueue.Push(buffer[i])

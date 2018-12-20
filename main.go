@@ -76,7 +76,6 @@ func actionStart(reader *Reader) {
 			Verbose("Valid datagram: " + data.Status)
 			publisher.updateData(data)
 		} else {
-			Verbose("Datagram missing")
 			publisher.updateData(nil)
 			// Only sleep if there are no datagrams currently
 			time.Sleep(10 * time.Second)
