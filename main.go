@@ -26,6 +26,8 @@ func init() {
 }
 
 func main() {
+	Info("Starting Growatt Inverter Reader v1.001")
+
 	//	Read the command line arguments
 	flag.Parse()
 
@@ -50,7 +52,7 @@ func main() {
 
 func actionInit(reader *Reader) {
 	Info("Init requested...")
-	status := reader.initLogger(false)
+	status := reader.initLogger()
 	if status {
 		Info("Sent. Please restart!")
 	} else {
@@ -64,23 +66,13 @@ func actionStart(reader *Reader) {
 	// read data, interpret to datagrams and publish as json
 
 	interpreter := NewInterpreter(reader.getQueue())
-	publisher := new(Publisher)
+	publisher := NewPublisher()
 
 	go reader.startMonitored()
 	go interpreter.start()
 	go publisher.start(port)
 
-	for {
-		data := interpreter.pop()
-		if data != nil {
-			Verbose("Valid datagram: " + data.Status)
-			publisher.updateData(data)
-		} else {
-			publisher.updateData(nil)
-			// Only sleep if there are no datagrams currently
-			time.Sleep(10 * time.Second)
-		}
-	}
+	publisher.listen(interpreter, reader)
 }
 
 func writeMessage(msg string, ctx string) {
@@ -98,6 +90,6 @@ func Info(msg string) {
 
 func Verbose(msg string) {
 	if verbose {
-		writeMessage(msg, "[DEBUG]")
+		writeMessage(msg, "[----]")
 	}
 }

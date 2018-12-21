@@ -17,6 +17,8 @@ type Reader struct {
 	device     string
 	speed      uint
 	lastUpdate time.Time
+	status     string
+	connection io.ReadWriteCloser
 }
 
 /*
@@ -33,7 +35,7 @@ func NewReader(device string, speed int) *Reader {
 	// Use a queue for 100K bytes
 	r.dataqueue = NewQueue(100000)
 	r.lastUpdate = time.Now()
-
+	r.status = "Created"
 	return r
 }
 
@@ -46,16 +48,22 @@ func (r *Reader) getQueue() *Queue {
 
 /*
 	Starts and monitors the serial reader. If it terminates, it will restart
-	the reader (with possible reinitialisation of the inverter on wakeup).
+	the reader (with reinitialisation of the inverter on wakeup). If init
+	fails, queue will be cleared and sleep of 10 minutes is induced.
 */
 func (r *Reader) startMonitored() {
 	for {
+		count := 0
 		Info("Serial reader starting.")
 		if r.start() {
-			status := r.initLogger(false)
-			if !status {
+			status := r.initLogger()
+			for !status {
+				count = count + 1
+				r.status = "Waiting for reinit " + strconv.Itoa(count)
+				Verbose("Reinit after stop failed. Reader will sleep.")
 				r.dataqueue.Clear()
 				time.Sleep(10 * time.Minute)
+				Verbose("Reader about to restart.")
 			}
 		}
 	}
@@ -66,8 +74,8 @@ func (r *Reader) startMonitored() {
 	inverter to start sending the datagram	data. It *should* only send
 	every 1.5 seconds, but currently I receive data continuously.
 */
-func (r *Reader) initLogger(silent bool) bool {
-	Info("Inverter about to be initialed...")
+func (r *Reader) initLogger() bool {
+	Info("Inverter about to be initialized...")
 	options := serial.OpenOptions{
 		PortName:              r.device,
 		BaudRate:              r.speed,
@@ -83,9 +91,9 @@ func (r *Reader) initLogger(silent bool) bool {
 	}
 	defer conn.Close()
 
-	var status bool
+	r.status = "Initializing"
 
-	status = r.sendCommand(conn, "Init", []byte{
+	status := r.sendCommand(conn, "Init", []byte{
 		0x3F, 0x23, 0x7E, 0x34, 0x41, 0x7E, 0x32,
 		0x59, 0x31, 0x35, 0x30, 0x30, 0x23, 0x3F})
 
@@ -141,6 +149,18 @@ func (r *Reader) sendCommand(conn io.ReadWriteCloser, task string, data []byte) 
 }
 
 /*
+	Checks if the reader needs to be triggered
+*/
+func (r *Reader) poke() {
+	span := time.Now().Sub(r.lastUpdate)
+	if span > 5*time.Minute {
+		Warn("Poke needed. Reader can't read data.")
+		r.connection.Close()
+		r.initLogger()
+	}
+}
+
+/*
 	Starts reading until read failure or respawn of the inverter
 */
 func (r *Reader) start() bool {
@@ -156,6 +176,8 @@ func (r *Reader) start() bool {
 
 	Info(fmt.Sprintf("Connecting to %v [%v,8,N,1]", r.device, r.speed))
 
+	r.status = "Connecting"
+
 	// Open the port.
 	conn, err := serial.Open(options)
 	if err != nil {
@@ -164,10 +186,12 @@ func (r *Reader) start() bool {
 	// Make sure to close it later.
 	defer conn.Close()
 
+	r.connection = conn
 	reading := false
 
 	buffer := make([]byte, 30)
 	for {
+		r.status = "Reading since " + r.lastUpdate.Format("15:04:05")
 		n, err := conn.Read(buffer)
 		if err != nil {
 			Warn("Reading failed due to: " + err.Error())
@@ -195,6 +219,8 @@ func (r *Reader) start() bool {
 			r.dataqueue.Push(buffer[i])
 		}
 	}
+	r.status = "Stopped reading"
+
 	Warn("Reading stopped.")
 	return false
 }

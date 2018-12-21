@@ -8,18 +8,31 @@ Example output of ```http://127.0.0.1:5701/status```:
   "VoltagePV1": 335.8,
   "VoltagePV2": 0,
   "VoltageBus": 380.6,
-  "VoltageGrid": 225.7,
-  "TotalProduction": 3822.6,
-  "DayProduction": 0.7,
-  "Frequency": 49.99,
-  "Power": 798.4,
-  "Temperature": 26.9,
-  "OperationHours": 1891.338,
+  "VoltageGrid": 225.7,                   *
+  "TotalProduction": 3822.6,              *
+  "DayProduction": 0.7,                   *
+  "Frequency": 49.99,                     *
+  "Power": 798.4,                         *
+  "Temperature": 26.9,                    *
+  "OperationHours": 1891.338,             *
   "Status": "Normal",
   "FaultCode": 0,
   "Timestamp": "2018-12-09T13:15:54.363021599+01:00"
 }
 ```
+Starred fields are optional.
+
+Information can also be retrieved: ```curl http://localhost:5701/info```:
+
+```json
+{
+  "Reader":"Reading since 14:11:18",
+  "Interpreter":"No input since 14:11:18",
+  "Publisher":"Normal"
+}
+```
+
+Above is a perfectly legal state as long as the times are within 10 minutes of the current time. Note that startup takes several seconds.
 
 ## Status
 
@@ -36,7 +49,7 @@ If you want to initialise the inverter manually, use ```./growatt --action Init`
  
 ## Required
 
-You need a 'USB to serial' converter. Remove the little plate to expose the RS2323 port and connect the cable. Connect the USB-side to a Raspberry Pi or other device.
+You need a 'USB to serial' converter. Remove the little plate to expose the RS2323 port and connect the cable. Connect the USB-side to a Raspberry Pi or other device. Using a Raspberry the serial output should NOT be activated (raspi-config).
 
 ## Openhab
 
@@ -61,6 +74,9 @@ String Growatt_Update          "Updated: [%s]"                 { http="<[growatt
 ```
 
 Install the JSsonPath transformation plugin.
+
+Note that on power down of the inverter there will be values missing from the JSON, causing messages in the openhab log. As far as I know there is no way to indicate a field is optional for JSONPATH.
+
 
 ## Disclaimer
 

@@ -14,6 +14,9 @@ type Interpreter struct {
 	lastData   *Datagram
 	lock       *sync.Mutex
 	hasSlept   bool
+	sleeping   bool
+	status     string
+	lastUpdate time.Time
 }
 
 type Datagram struct {
@@ -62,6 +65,7 @@ func (i *Interpreter) start() {
 	for {
 		e := i.inputQueue.Pop()
 		if e == nil {
+			i.status = "No input since " + i.lastUpdate.Format("15:04:05")
 			// No input yet. Let's sleep...
 			time.Sleep(100 * time.Millisecond)
 
@@ -69,27 +73,34 @@ func (i *Interpreter) start() {
 			emptyCount = emptyCount + 1
 			if emptyCount == 100 {
 				emptyCount = 0
+				i.status = "Not receiving"
 				if !i.hasSlept {
 					Warn("Initiating sleep mode ...")
 				}
 				i.updateToDatagram()
 
 				// Sleep
+				i.inputQueue.Clear()
+				i.sleeping = true
 				time.Sleep(5 * time.Minute)
 				i.hasSlept = true
 			}
 		} else {
 			emptyCount = 0
+			i.lastUpdate = time.Now()
 
 			if i.hasSlept {
 				Info("Waking up!")
 				i.hasSlept = false
+				i.sleeping = false
 			}
 			bv := e.(Element).data.(byte)
 			if bv == 0x57 && idx >= 30 {
+				i.status = "Supplying datagrams"
 				i.createAndStoreDatagram(buffer[0:idx])
 				idx = 0
 			} else if idx >= 40 {
+				i.status = "Receiving wrong data"
 				i.updateToDatagram("InvalidData")
 
 				Verbose(hex.Dump(buffer[0:idx]))
@@ -98,6 +109,7 @@ func (i *Interpreter) start() {
 				errCount = errCount + 1
 				if errCount > 20 {
 					Warn("Invalid data received. Waiting...")
+					i.status = "Awaiting correct data"
 					time.Sleep(5 * time.Minute)
 					i.inputQueue.Clear()
 					errCount = 0
@@ -105,6 +117,7 @@ func (i *Interpreter) start() {
 					Warn("Invalid data received. Retrying...")
 				}
 			} else {
+				i.status = "Reading"
 				buffer[idx] = bv
 				idx = idx + 1
 			}
@@ -166,7 +179,6 @@ func (i *Interpreter) createAndStoreDatagram(data []byte) {
 func (i *Interpreter) pop() *Datagram {
 	i.lock.Lock()
 	result := i.lastData
-	i.lastData = nil
 	i.lock.Unlock()
 	return result
 }
