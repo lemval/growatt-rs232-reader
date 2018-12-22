@@ -7,10 +7,13 @@ import (
 	"strconv"
 	"sync"
 	"time"
+
+	"./diag"
+	"./reader"
 )
 
 type Interpreter struct {
-	inputQueue *Queue
+	inputQueue *reader.Queue
 	lastData   *Datagram
 	lock       *sync.Mutex
 	hasSlept   bool
@@ -35,7 +38,7 @@ type Datagram struct {
 	Timestamp       time.Time
 }
 
-func NewInterpreter(inque *Queue) *Interpreter {
+func NewInterpreter(inque *reader.Queue) *Interpreter {
 	i := new(Interpreter)
 	i.inputQueue = inque
 	i.lock = &sync.Mutex{}
@@ -56,7 +59,7 @@ func NewDatagram() *Datagram {
 	received within several seconds.
 */
 func (i *Interpreter) start() {
-	Info("Start interpreter...")
+	diag.Info("Start interpreter...")
 	buffer := make([]byte, 40, 40)
 	idx := 0
 	errCount := 0
@@ -65,7 +68,7 @@ func (i *Interpreter) start() {
 	for {
 		e := i.inputQueue.Pop()
 		if e == nil {
-			i.status = "No input since " + i.lastUpdate.Format("15:04:05")
+			i.status = "Polling since " + i.lastUpdate.Format("15:04:05")
 			// No input yet. Let's sleep...
 			time.Sleep(100 * time.Millisecond)
 
@@ -75,7 +78,7 @@ func (i *Interpreter) start() {
 				emptyCount = 0
 				i.status = "Not receiving"
 				if !i.hasSlept {
-					Warn("Initiating sleep mode ...")
+					diag.Warn("Initiating sleep mode ...")
 				}
 				i.updateToDatagram()
 
@@ -86,35 +89,36 @@ func (i *Interpreter) start() {
 				i.hasSlept = true
 			}
 		} else {
+			i.status = "Receiving data"
 			emptyCount = 0
 			i.lastUpdate = time.Now()
 
 			if i.hasSlept {
-				Info("Waking up!")
+				diag.Info("Waking up!")
 				i.hasSlept = false
 				i.sleeping = false
 			}
-			bv := e.(Element).data.(byte)
+			bv := e.(byte)
 			if bv == 0x57 && idx >= 30 {
 				i.status = "Supplying datagrams"
 				i.createAndStoreDatagram(buffer[0:idx])
 				idx = 0
 			} else if idx >= 40 {
 				i.status = "Receiving wrong data"
-				i.updateToDatagram("InvalidData")
+				i.updateToDatagram() //  "InvalidData")
 
-				Verbose(hex.Dump(buffer[0:idx]))
+				diag.Verbose(hex.Dump(buffer[0:idx]))
 
 				idx = 0
 				errCount = errCount + 1
 				if errCount > 20 {
-					Warn("Invalid data received. Waiting...")
+					diag.Warn("Invalid data received. Waiting...")
 					i.status = "Awaiting correct data"
 					time.Sleep(5 * time.Minute)
 					i.inputQueue.Clear()
 					errCount = 0
 				} else {
-					Warn("Invalid data received. Retrying...")
+					diag.Warn("Invalid data received. Retrying...")
 				}
 			} else {
 				i.status = "Reading"
@@ -141,8 +145,8 @@ func (i *Interpreter) updateToDatagram(status ...string) {
 */
 func (i *Interpreter) createAndStoreDatagram(data []byte) {
 	if len(data) != 30 {
-		Warn("Datagram incorrect size; ignoring " + strconv.Itoa(len(data)) + " bytes ...")
-		Verbose(hex.Dump(data))
+		diag.Warn("Datagram incorrect size; ignoring " + strconv.Itoa(len(data)) + " bytes ...")
+		diag.Verbose(hex.Dump(data))
 		return
 	}
 
@@ -163,6 +167,7 @@ func (i *Interpreter) createAndStoreDatagram(data []byte) {
 	status := i.decodeSmallValue(data[14])
 	switch status {
 	case 0:
+		// Occurs at start and end of active period.
 		dg.Status = "Waiting"
 	case 1:
 		dg.Status = "Normal"
@@ -175,8 +180,8 @@ func (i *Interpreter) createAndStoreDatagram(data []byte) {
 	i.lock.Unlock()
 }
 
-/* Retrieves the latest datagram as interpreted and removes it. */
-func (i *Interpreter) pop() *Datagram {
+/* Retrieves the latest datagram as interpreted. */
+func (i *Interpreter) getDatagram() *Datagram {
 	i.lock.Lock()
 	result := i.lastData
 	i.lock.Unlock()

@@ -6,8 +6,11 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
+	"./diag"
+	"./reader"
 	"github.com/gorilla/mux"
 )
 
@@ -15,11 +18,11 @@ type Status struct {
 	Reader      string
 	Interpreter string
 	Publisher   string
+	Init        string
 }
 
 type Publisher struct {
 	data   *Datagram // type var for data to be published
-	empty  bool
 	status *Status
 }
 
@@ -38,33 +41,36 @@ func (p *Publisher) start(port int) {
 	router := mux.NewRouter()
 	router.HandleFunc("/status", p.getDatagram).Methods("GET")
 	router.HandleFunc("/info", p.getInfo).Methods("GET")
-	Info("Starting server on port " + serverPort)
+	diag.Info("Starting server on port " + serverPort)
 	log.Fatal(http.ListenAndServe(":"+serverPort, router))
 }
 
 /*
-	Listen to the supplier
+	Listen to the supplier and keep track of statuses
 */
-func (p *Publisher) listen(supplier *Interpreter, reader *Reader) {
+func (p *Publisher) listen(supplier *Interpreter, reader *reader.Reader) {
+
+	var prevStatus string
+
 	for {
 		p.status.Interpreter = supplier.status
-		p.status.Reader = reader.status
-		data := supplier.pop()
+		p.status.Reader = reader.Status
+		p.status.Init = reader.InitStatus
+
+		data := supplier.getDatagram()
 		if data != nil {
-			Verbose("Set datagram: " + data.Status)
-			p.status.Publisher = data.Status
-			p.data = data
-			p.empty = false
-		} else {
-			p.status.Publisher = "Sleeping"
-			p.data = NewDatagram()
-			p.empty = true
-			// Only sleep if there are no datagrams currently
-			time.Sleep(10 * time.Second)
-			if supplier.sleeping {
-				reader.poke()
+			if strings.Compare(prevStatus, data.Status) != 0 {
+				diag.Info("Set datagram: " + data.Status + " on " + time.Now().Format("15:04:05"))
+				prevStatus = data.Status
 			}
+			p.status.Publisher = "Data:" + data.Status
+			p.data = data
+		} else {
+			p.status.Publisher = "No datagram on " + time.Now().Format("15:04:05")
+			p.data = NewDatagram()
 		}
+		time.Sleep(500 * time.Millisecond)
+
 	}
 }
 

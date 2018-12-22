@@ -1,4 +1,4 @@
-package main
+package reader
 
 import "sync"
 
@@ -35,7 +35,7 @@ func (qd *Queue) Push(data interface{}) {
 	element.data = data
 	qd.container = append(qd.container, *element)
 	qd.counter = qd.counter + 1
-	
+
 	// Shrink if needed with a third of the current size
 	if qd.counter > qd.maxSize {
 		shrinkSize := len(qd.container) / 3
@@ -69,5 +69,5 @@ func (qd *Queue) Pop() interface{} {
 	qd.counter = qd.counter - 1
 	qd.lock.Unlock()
 
-	return r
+	return r.data
 }

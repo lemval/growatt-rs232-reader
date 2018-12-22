@@ -1,5 +1,5 @@
 // reader
-package main
+package reader
 
 import (
 	"encoding/hex"
@@ -7,7 +7,10 @@ import (
 	"io"
 	"log"
 	"strconv"
+	"strings"
 	"time"
+
+	"../diag"
 
 	"github.com/jacobsa/go-serial/serial"
 )
@@ -17,7 +20,8 @@ type Reader struct {
 	device     string
 	speed      uint
 	lastUpdate time.Time
-	status     string
+	Status     string
+	InitStatus string
 	connection io.ReadWriteCloser
 }
 
@@ -35,14 +39,15 @@ func NewReader(device string, speed int) *Reader {
 	// Use a queue for 100K bytes
 	r.dataqueue = NewQueue(100000)
 	r.lastUpdate = time.Now()
-	r.status = "Created"
+	r.Status = "Created"
+	r.InitStatus = "None"
 	return r
 }
 
 /*
 	Get a pointer to the queue for reading
 */
-func (r *Reader) getQueue() *Queue {
+func (r *Reader) GetQueue() *Queue {
 	return r.dataqueue
 }
 
@@ -51,22 +56,41 @@ func (r *Reader) getQueue() *Queue {
 	the reader (with reinitialisation of the inverter on wakeup). If init
 	fails, queue will be cleared and sleep of 10 minutes is induced.
 */
-func (r *Reader) startMonitored() {
+func (r *Reader) StartMonitored() {
+
+	go r.startPoking()
+
 	for {
-		count := 0
-		Info("Serial reader starting.")
-		if r.start() {
-			status := r.initLogger()
-			for !status {
-				count = count + 1
-				r.status = "Waiting for reinit " + strconv.Itoa(count)
-				Verbose("Reinit after stop failed. Reader will sleep.")
-				r.dataqueue.Clear()
-				time.Sleep(10 * time.Minute)
-				Verbose("Reader about to restart.")
-			}
+		if strings.Compare(r.InitStatus, "OK") != 0 {
+			r.dataqueue.Clear()
+			r.InitLogger()
+		}
+
+		// count := 0
+		diag.Info("Serial reader starting.")
+		status := r.start()
+		r.Status = "Stopped reading."
+		diag.Warn("Reading stopped (" + strconv.FormatBool(status) + ").")
+	}
+}
+
+/*
+	Checks if the reader needs to be triggered since conn.Read is blocking
+*/
+func (r *Reader) startPoking() {
+	for {
+		time.Sleep(1 * time.Minute)
+		span := time.Now().Sub(r.lastUpdate)
+		if span > 5*time.Minute {
+			diag.Warn("Poke needed. Reader can't read data.")
+			r.connection.Close()
+			r.InitLogger()
+			diag.Warn("Poke done.")
+		} else {
+			diag.Verbose("No poke needed.")
 		}
 	}
+	diag.Warn("Poking stopped working.")
 }
 
 /*
@@ -74,8 +98,9 @@ func (r *Reader) startMonitored() {
 	inverter to start sending the datagram	data. It *should* only send
 	every 1.5 seconds, but currently I receive data continuously.
 */
-func (r *Reader) initLogger() bool {
-	Info("Inverter about to be initialized...")
+func (r *Reader) InitLogger() bool {
+	diag.Info("Inverter about to be initialized...")
+	r.InitStatus = "Starting"
 	options := serial.OpenOptions{
 		PortName:              r.device,
 		BaudRate:              r.speed,
@@ -87,24 +112,27 @@ func (r *Reader) initLogger() bool {
 	}
 	conn, err := serial.Open(options)
 	if err != nil {
+		r.InitStatus = "Failed to open connection"
 		log.Fatalf("[ERROR] serial.Open: %v", err)
 	}
 	defer conn.Close()
-
-	r.status = "Initializing"
+	r.InitStatus = "Initializing"
 
 	status := r.sendCommand(conn, "Init", []byte{
 		0x3F, 0x23, 0x7E, 0x34, 0x41, 0x7E, 0x32,
 		0x59, 0x31, 0x35, 0x30, 0x30, 0x23, 0x3F})
 
 	if !status {
+		r.InitStatus = "Failed on sending request"
 		return false
 	}
+	r.InitStatus = "Commiting request"
 
 	status = r.sendCommand(conn, "Commit", []byte{
 		0x3F, 0x23, 0x7E, 0x34, 0x42, 0x7E, 0x23, 0x3F})
 
-	Info("Sent init command to Growatt inverter.")
+	r.InitStatus = "OK"
+	diag.Info("Sent init command to Growatt inverter.")
 	return status
 }
 
@@ -119,11 +147,11 @@ func (r *Reader) sendCommand(conn io.ReadWriteCloser, task string, data []byte) 
 	buffer := make([]byte, 64)
 	size, err2 := conn.Read(buffer)
 	if err2 != nil {
-		Warn(task + " not accepted: " + err2.Error())
+		diag.Warn(task + " not accepted: " + err2.Error())
 		return false
 	}
 	if size == 0 {
-		Warn(task + " not accepted: Empty response.")
+		diag.Warn(task + " not accepted: Empty response.")
 		return false
 	}
 
@@ -139,25 +167,13 @@ func (r *Reader) sendCommand(conn io.ReadWriteCloser, task string, data []byte) 
 	}
 
 	if equal {
-		Warn(task + " not accepted: Code " + string(first) + ".")
+		diag.Warn(task + " not accepted: Code " + strconv.Itoa(int(first)) + ".")
 		return false
 	}
 
-	Verbose("Reading size of send command: " + strconv.Itoa(size))
-	Verbose(hex.Dump(buffer[0:size]))
+	diag.Verbose("Reading size of send command: " + strconv.Itoa(size))
+	diag.Verbose(hex.Dump(buffer[0:size]))
 	return true
-}
-
-/*
-	Checks if the reader needs to be triggered
-*/
-func (r *Reader) poke() {
-	span := time.Now().Sub(r.lastUpdate)
-	if span > 5*time.Minute {
-		Warn("Poke needed. Reader can't read data.")
-		r.connection.Close()
-		r.initLogger()
-	}
 }
 
 /*
@@ -174,9 +190,9 @@ func (r *Reader) start() bool {
 		RTSCTSFlowControl: false,
 	}
 
-	Info(fmt.Sprintf("Connecting to %v [%v,8,N,1]", r.device, r.speed))
+	diag.Info(fmt.Sprintf("Connecting to %v [%v,8,N,1]", r.device, r.speed))
 
-	r.status = "Connecting"
+	r.Status = "Connecting"
 
 	// Open the port.
 	conn, err := serial.Open(options)
@@ -191,10 +207,10 @@ func (r *Reader) start() bool {
 
 	buffer := make([]byte, 30)
 	for {
-		r.status = "Reading since " + r.lastUpdate.Format("15:04:05")
+		r.Status = "Reading since " + r.lastUpdate.Format("15:04:05")
 		n, err := conn.Read(buffer)
 		if err != nil {
-			Warn("Reading failed due to: " + err.Error())
+			diag.Warn("Reading failed due to: " + err.Error())
 			break
 		}
 
@@ -202,14 +218,19 @@ func (r *Reader) start() bool {
 		r.lastUpdate = time.Now()
 		if span > 5*time.Minute {
 			fmt.Println()
-			Warn("Respawning...")
+			diag.Warn("Respawning...")
+
+			diag.Warn(hex.Dump(buffer[0:n]))
+
 			r.dataqueue.Clear()
+			conn.Close()
+			r.connection = nil
 			return true
 		}
 
 		if !reading {
 			reading = true
-			Info("Reading started with " + strconv.Itoa(n) + " bytes.")
+			diag.Info("Reading started with " + strconv.Itoa(n) + " bytes.")
 		}
 
 		// TODO Error because it keeps on reading and getting data. How to stop it?
@@ -219,8 +240,5 @@ func (r *Reader) start() bool {
 			r.dataqueue.Push(buffer[i])
 		}
 	}
-	r.status = "Stopped reading"
-
-	Warn("Reading stopped.")
 	return false
 }

@@ -6,9 +6,10 @@ import (
 	"fmt"
 
 	"os"
-	// "strconv"
 	"strings"
-	"time"
+
+	"./diag"
+	"./reader"
 )
 
 var speed int
@@ -26,13 +27,15 @@ func init() {
 }
 
 func main() {
-	Info("Starting Growatt Inverter Reader v1.001")
+	diag.Info("Starting Growatt Inverter Reader v1.002")
 
 	//	Read the command line arguments
 	flag.Parse()
 
+	diag.Verbosive = verbose
+
 	// Initialize the reader
-	reader := NewReader(device, speed)
+	reader := reader.NewReader(device, speed)
 
 	//	Handle the 'init' command to to send the message to
 	//	start the logging of the data.
@@ -50,46 +53,27 @@ func main() {
 	}
 }
 
-func actionInit(reader *Reader) {
-	Info("Init requested...")
-	status := reader.initLogger()
+func actionInit(reader *reader.Reader) {
+	diag.Info("Init requested...")
+	status := reader.InitLogger()
 	if status {
-		Info("Sent. Please restart!")
+		diag.Info("Sent. Please restart!")
 	} else {
-		Warn("Failed. Please retry!")
+		diag.Warn("Failed. Please retry!")
 	}
 }
 
-func actionStart(reader *Reader) {
+func actionStart(reader *reader.Reader) {
 
 	// Initialize the interpreter and publisher and start all threads to
 	// read data, interpret to datagrams and publish as json
 
-	interpreter := NewInterpreter(reader.getQueue())
+	interpreter := NewInterpreter(reader.GetQueue())
 	publisher := NewPublisher()
 
-	go reader.startMonitored()
+	go reader.StartMonitored()
 	go interpreter.start()
 	go publisher.start(port)
 
 	publisher.listen(interpreter, reader)
-}
-
-func writeMessage(msg string, ctx string) {
-	now := time.Now().Format("15:04")
-	fmt.Printf("%s %s %s\n", now, ctx, msg)
-}
-
-func Warn(msg string) {
-	writeMessage(msg, "[WARN]")
-}
-
-func Info(msg string) {
-	writeMessage(msg, "[INFO]")
-}
-
-func Verbose(msg string) {
-	if verbose {
-		writeMessage(msg, "[----]")
-	}
 }
