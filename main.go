@@ -27,7 +27,7 @@ func init() {
 }
 
 func main() {
-	diag.Info("Starting Growatt Inverter Reader v1.002")
+	diag.Info("Starting Growatt Inverter Reader v1.003")
 
 	//	Read the command line arguments
 	flag.Parse()
