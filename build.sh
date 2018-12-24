@@ -5,5 +5,7 @@
 go clean
 go build
 
-env GOOS=linux GOARCH=arm   go build -o growatt_pi -ldflags '-s'
-env GOOS=linux GOARCH=arm64 go build -o growatt_odroid -ldflags '-s'
+mkdir release >/dev/null 2>&1
+
+env GOOS=linux GOARCH=arm   go build -o release/growatt_pi -ldflags '-s'
+env GOOS=linux GOARCH=arm64 go build -o release/growatt_odroid -ldflags '-s'
