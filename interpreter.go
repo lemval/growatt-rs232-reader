@@ -78,7 +78,7 @@ func (i *Interpreter) start() {
 				emptyCount = 0
 				i.status = "Not receiving"
 				if !i.hasSlept {
-					diag.Warn("Initiating sleep mode ...")
+					diag.Warn("Processing will sleep now.")
 				}
 				i.updateToDatagram()
 
@@ -94,7 +94,7 @@ func (i *Interpreter) start() {
 			i.lastUpdate = time.Now()
 
 			if i.hasSlept {
-				diag.Info("Waking up!")
+				diag.Info("Processing will proceed!")
 				i.hasSlept = false
 				i.sleeping = false
 			}
@@ -105,7 +105,7 @@ func (i *Interpreter) start() {
 				idx = 0
 			} else if idx >= 40 {
 				i.status = "Receiving wrong data"
-				i.updateToDatagram() //  "InvalidData")
+				i.updateToDatagram()
 
 				diag.Verbose(hex.Dump(buffer[0:idx]))
 

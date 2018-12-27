@@ -85,7 +85,7 @@ func (r *Reader) startPoking() {
 			diag.Warn("Poke needed. Reader can't read data.")
 			r.connection.Close()
 			r.InitLogger()
-			diag.Warn("Poke done.")
+			diag.Verbose("Poke done.")
 		} else {
 			diag.Verbose("No poke needed.")
 		}
@@ -99,7 +99,7 @@ func (r *Reader) startPoking() {
 	every 1.5 seconds, but currently I receive data continuously.
 */
 func (r *Reader) InitLogger() bool {
-	diag.Info("Inverter about to be initialized...")
+	diag.Info("Sending initialisation to inverter...")
 	r.InitStatus = "Starting"
 	options := serial.OpenOptions{
 		PortName:              r.device,
@@ -217,11 +217,7 @@ func (r *Reader) start() bool {
 		span := time.Now().Sub(r.lastUpdate)
 		r.lastUpdate = time.Now()
 		if span > 5*time.Minute {
-			fmt.Println()
 			diag.Warn("Respawning...")
-
-			diag.Warn(hex.Dump(buffer[0:n]))
-
 			r.dataqueue.Clear()
 			conn.Close()
 			r.connection = nil

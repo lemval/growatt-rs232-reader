@@ -20,15 +20,16 @@ Example output of ```http://127.0.0.1:5701/status```:
   "Timestamp": "2018-12-09T13:15:54.363021599+01:00"
 }
 ```
-Starred fields are optional.
+Starred fields are optional and won't be included outside status 'Normal'.
 
-Information can also be retrieved: ```curl http://localhost:5701/info```:
+Additional information can be retrieved using: ```curl http://localhost:5701/info```:
 
 ```json
 {
   "Reader":"Reading since 14:11:18",
-  "Interpreter":"No input since 14:11:18",
-  "Publisher":"Normal"
+  "Interpreter":"Polling since 14:11:18",
+  "Publisher":"Normal",
+  "Init":"OK"
 }
 ```
 
@@ -36,11 +37,13 @@ Above is a perfectly legal state as long as the times are within 10 minutes of t
 
 ## Status
 
-Attempting to get it restarted the next morning as on power down (sunset) the interface of the inverter will reset, so the init needs to be resend as soon as the inverter comes back to life. This seems to need polling, as no sign is yet detected which indicates it is powered on again.
+Up and running with restarts in the morning. As power goes down (sunset) the interface of the inverter will reset, so the init needs to be resend as soon as the inverter comes back to life. This needs polling, as no sign is yet detected which indicates it is powered on again. Note that reading the serial port is blocking without timeout, so additional processes are started to check the communication.
 
 ## How to build and run:
 
 It is written in GoLang. For compilation, see the build.sh script.
+
+Binaries for the Raspberry Pi and Odroid are available though.
 
 Run as ```./growatt --device /dev/ttyUSB0 --baudrate 9600``` or without any arguments to use the default shown.
 Currently, stop bits, parity, etc. are fixed.
@@ -50,6 +53,8 @@ If you want to initialise the inverter manually, use ```./growatt --action Init`
 ## Required
 
 You need a 'USB to serial' converter. Remove the little plate to expose the RS2323 port and connect the cable. Connect the USB-side to a Raspberry Pi or other device. Using a Raspberry the serial output should NOT be activated (raspi-config).
+
+Example cable: https://www.aliexpress.com/item/Adapter-Convertor-USB-to-RS232-Serial-Port-9-Pin-DB9-Cable-Serial-COM-Port-free/32318476207.html
 
 ## Openhab
 
@@ -76,7 +81,6 @@ String Growatt_Update          "Updated: [%s]"                 { http="<[growatt
 Install the JSsonPath transformation plugin.
 
 Note that on power down of the inverter there will be values missing from the JSON, causing messages in the openhab log. As far as I know there is no way to indicate a field is optional for JSONPATH.
-
 
 ## Disclaimer
 
