@@ -44,9 +44,9 @@ Up and running with restarts in the morning. As power goes down (sunset) the int
 It is written in GoLang. For compilation, see the build.sh script.
 
 Binaries for the Raspberry Pi and Odroid are available though.
- growatt_pi2 : Older B models, Zero possibly
- growatt_pi : Model 3(+)
- growatt_odroid : C2 (maybe others)
+* growatt_pi2 : Older B models, Zero possibly
+* growatt_pi : Model 3(+)
+* growatt_odroid : C2 (maybe others)
 
 Run as ```./growatt --device /dev/ttyUSB0 --baudrate 9600``` or without any arguments to use the default shown.
 Currently, stop bits, parity, etc. are fixed.
