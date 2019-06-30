@@ -1,6 +1,6 @@
 # growatt-rs232-reader
 
-This reader allows some Growatt Inverters to publish data on a REST endpoint.
+This reader allows some Growatt Inverters to publish data on a REST endpoint and optionally MQTT topic.
 
 Example output of ```http://127.0.0.1:5701/status```:
 ```json
@@ -21,6 +21,7 @@ Example output of ```http://127.0.0.1:5701/status```:
 }
 ```
 Starred fields are optional and won't be included outside status 'Normal'.
+MQTT messages will only be send if a value changes (no additional information will be send).
 
 Additional information can be retrieved using: ```curl http://localhost:5701/info```:
 
@@ -34,6 +35,25 @@ Additional information can be retrieved using: ```curl http://localhost:5701/inf
 ```
 
 Above is a perfectly legal state as long as the times are within 10 minutes of the current time. Note that startup takes several seconds.
+
+## Usage
+
+Usage: ./growatt <options>
+  -action string
+        The action (Start or Init). (default "Start")
+  -baudrate int
+        The baud rate of the serial connection. (default 9600)
+  -broker string
+        Connect to MQTT broker (e.g. tcp://localhost:1883).
+  -device string
+        The serial port descriptor. (default "/dev/ttyUSB0")
+  -server int
+        The server port for the REST service. (default 5701)
+  -topic string
+        MQTT topic /solar/<topic>/<item>. (default "Growatt")
+  -v    Activate verbose logging.
+
+## MQTT
 
 ## Status
 
@@ -59,7 +79,7 @@ You need a 'USB to serial' converter. Remove the little plate to expose the RS23
 
 Example cable: https://www.aliexpress.com/item/Adapter-Convertor-USB-to-RS232-Serial-Port-9-Pin-DB9-Cable-Serial-COM-Port-free/32318476207.html
 
-## Openhab
+## Openhab HTTP
 
 If you would like to use this as Openhab growatt publisher, use this in combination with the HTTP binding: https://www.openhab.org/addons/bindings/http1/
 
@@ -81,9 +101,35 @@ String Growatt_Status          "Status [%s]"                   { http="<[growatt
 String Growatt_Update          "Updated: [%s]"                 { http="<[growatt:5000:JSONPATH($.Timestamp)]" }
 ```
 
-Install the JSsonPath transformation plugin.
+Install the JsonPath transformation plugin.
 
 Note that on power down of the inverter there will be values missing from the JSON, causing messages in the openhab log. As far as I know there is no way to indicate a field is optional for JSONPATH.
+
+## Openhab MQTT
+
+* Install a MQTT broker somewhere (e.g. Mosquitto)
+* Install the MQTT binding
+* Install a Thing of type MQTT broker and configure for your server
+* Install a Thing of type Generic MQTT Thing and select the broker
+  (note: this application does not support login to the broker)
+* Monitor if you receive messages (e.g. `mosquitto_sub -v -t '#'`)
+* Add channels and items to the Generic Thing
+* Use as MQTT channels (the 'Growatt' part is configurable):
+```
+	/solar/Growatt/Power         
+	/solar/Growatt/VoltagePV1    
+	/solar/Growatt/VoltagePV2    
+	/solar/Growatt/VoltageBus    
+	/solar/Growatt/VoltageGrid   
+	/solar/Growatt/TotalProduction
+	/solar/Growatt/DayProduction 
+	/solar/Growatt/Frequency     
+	/solar/Growatt/Temperature   
+	/solar/Growatt/OperationHours
+	/solar/Growatt/Status        
+	/solar/Growatt/FaultCode     
+	/solar/Growatt/Timestamp
+```
 
 ## Disclaimer
 

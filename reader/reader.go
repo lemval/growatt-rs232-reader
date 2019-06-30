@@ -83,14 +83,13 @@ func (r *Reader) startPoking() {
 		span := time.Now().Sub(r.lastUpdate)
 		if span > 5*time.Minute {
 			diag.Warn("Poke needed. Reader can't read data.")
-			r.connection.Close()
+			_ = r.connection.Close()
 			r.InitLogger()
 			diag.Verbose("Poke done.")
 		} else {
 			diag.Verbose("No poke needed.")
 		}
 	}
-	diag.Warn("Poking stopped working.")
 }
 
 /*
@@ -219,7 +218,7 @@ func (r *Reader) start() bool {
 		if span > 5*time.Minute {
 			diag.Warn("Respawning...")
 			r.dataqueue.Clear()
-			conn.Close()
+			_ = conn.Close()
 			r.connection = nil
 			return true
 		}

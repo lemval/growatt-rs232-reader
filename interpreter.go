@@ -50,6 +50,7 @@ func NewDatagram() *Datagram {
 	dg := new(Datagram)
 	dg.Timestamp = time.Now().Round(time.Second)
 	dg.Status = "Unavailable"
+	dg.FaultCode = -1
 	return dg
 }
 
@@ -195,7 +196,7 @@ func (i *Interpreter) decodeSmallValue(data byte) int {
 
 /* Convert double byte to integer */
 func (i *Interpreter) decodeValue(msw byte, lsw byte, div int) float32 {
-	return float32((int(msw)*256 + int(lsw))) / float32(div)
+	return float32(int(msw)*256 + int(lsw)) / float32(div)
 }
 
 /* Convert quad byte to integer */
