@@ -8,8 +8,8 @@ import (
 	"os"
 	"strings"
 
-	"./diag"
-	"./reader"
+	"growattrr/diag"
+	"growattrr/reader"
 )
 
 var speed int

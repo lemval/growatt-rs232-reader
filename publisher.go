@@ -12,8 +12,9 @@ import (
 	"strings"
 	"time"
 
-	"./diag"
-	"./reader"
+	"growattrr/diag"
+	"growattrr/reader"
+
 	"github.com/gorilla/mux"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
@@ -159,7 +160,7 @@ func (p *Publisher) publishMQTT() {
 			}
 		default:
 			// elemNew.Type().String() is always time.Time
-			timeValue,_ :=  elemNew.Interface().(time.Time)
+			timeValue, _ := elemNew.Interface().(time.Time)
 			token := client.Publish(p.topicRoot+field.Name, 0, false, timeValue.Format("2006-01-02 15:04:05"))
 			token.Wait()
 		}

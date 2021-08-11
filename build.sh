@@ -1,7 +1,8 @@
 #!/bin/bash
 
-# You might need a 'go get ...' to load the modules
+# Download Golang from https://golang.org/dl/
 
+go mod tidy
 go clean
 go build
 

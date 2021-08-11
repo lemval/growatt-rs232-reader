@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"../diag"
+	"growattrr/diag"
 
 	"github.com/jacobsa/go-serial/serial"
 )

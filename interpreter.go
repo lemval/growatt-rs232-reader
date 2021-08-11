@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"./diag"
-	"./reader"
+	"growattrr/diag"
+	"growattrr/reader"
 )
 
 type Interpreter struct {
@@ -196,7 +196,7 @@ func (i *Interpreter) decodeSmallValue(data byte) int {
 
 /* Convert double byte to integer */
 func (i *Interpreter) decodeValue(msw byte, lsw byte, div int) float32 {
-	return float32(int(msw)*256 + int(lsw)) / float32(div)
+	return float32(int(msw)*256+int(lsw)) / float32(div)
 }
 
 /* Convert quad byte to integer */
