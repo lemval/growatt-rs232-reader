@@ -46,15 +46,19 @@ func NewPublisher() *Publisher {
 		diag.Info("Using MQTT via : " + broker + " on /solar/" + topic)
 
 		p.topicRoot = "/solar/" + topic + "/"
-		p.opts = mqtt.NewClientOptions().
-			AddBroker(broker).
-			SetCleanSession(false).
-			SetClientID("Growatt connector")
-		// opts.SetUsername(user)
-		// opts.SetPassword(password)
+		p.initMqttConnection()
 	}
 
 	return p
+}
+
+func (p *Publisher) initMqttConnection() {
+	p.opts = mqtt.NewClientOptions().
+		AddBroker(broker).
+		SetCleanSession(false).
+		SetClientID("Growatt connector")
+	// opts.SetUsername(user)
+	// opts.SetPassword(password)
 }
 
 /*
@@ -97,7 +101,7 @@ func (p *Publisher) listen(supplier *Interpreter, reader *reader.Reader) {
 		}
 
 		if p.opts != nil {
-			p.publishMQTT()
+			p.publishMQTT(false)
 		}
 
 		time.Sleep(500 * time.Millisecond)
@@ -107,7 +111,7 @@ func (p *Publisher) listen(supplier *Interpreter, reader *reader.Reader) {
 /*
 	Listen to the supplier and keep track of statuses
 */
-func (p *Publisher) publishMQTT() {
+func (p *Publisher) publishMQTT(retry bool) {
 
 	if p.data == nil {
 		return
@@ -115,8 +119,13 @@ func (p *Publisher) publishMQTT() {
 
 	client := mqtt.NewClient(p.opts)
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
-		diag.Warn("MQTT connection failed!")
-		panic(token.Error())
+		if !retry {
+			p.initMqttConnection()
+			p.publishMQTT(true)
+		} else {
+			diag.Warn("MQTT not available!")
+			return
+		}
 	}
 
 	// diag.Info("Processing for MQTT: " + p.data.String())
