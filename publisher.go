@@ -31,19 +31,26 @@ type Publisher struct {
 	data   *Datagram // type var for data to be published
 	status *Status
 
-	prevData  *Datagram
-	opts      *mqtt.ClientOptions
-	topicRoot string
+	prevData   *Datagram
+	nextUpdate time.Time
+	opts       *mqtt.ClientOptions
+	topicRoot  string
+	period     int
 }
 
-func NewPublisher() *Publisher {
+func NewPublisher(delay int) *Publisher {
 	p := new(Publisher)
 	p.status = new(Status)
 	p.data = NewDatagram()
 	p.prevData = p.data
+	p.period = delay
+	p.nextUpdate = time.Now()
 
 	if broker != "" {
 		diag.Info("Using MQTT via : " + broker + " on /solar/" + topic)
+		if p.period > 0 {
+			diag.Info(fmt.Sprintf("Publish once every %d seconds.", p.period))
+		}
 
 		p.topicRoot = "/solar/" + topic + "/"
 		p.initMqttConnection()
@@ -117,6 +124,14 @@ func (p *Publisher) publishMQTT(retry bool) {
 		return
 	}
 
+	if p.period > 0 {
+		if time.Now().Before(p.nextUpdate) {
+			// Update later
+			return
+		}
+		p.nextUpdate = time.Now().Add(time.Second * time.Duration(delay))
+	}
+
 	client := mqtt.NewClient(p.opts)
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
 		if !retry {
@@ -130,6 +145,7 @@ func (p *Publisher) publishMQTT(retry bool) {
 
 	// diag.Info("Processing for MQTT: " + p.data.String())
 
+	// Use reflection to handle fields in data type
 	fields := reflect.TypeOf(*p.data)
 	valuesNew := reflect.ValueOf(*p.data)
 	valuesOld := reflect.ValueOf(*p.prevData)
@@ -146,7 +162,7 @@ func (p *Publisher) publishMQTT(retry bool) {
 		case reflect.Float32:
 			oldValue := elemOld.Float()
 			newValue := elemNew.Float()
-			// diag.Info(fmt.Sprintf("Float value: %f -> %f", oldValue, newValue))
+			// diag.Info(fmt.Sprintf("Float value: %f -> %f (%s)", oldValue, newValue, p.topicRoot+field.Name))
 			if diff := math.Abs(oldValue - newValue); diff > TOLERANCE {
 				// diag.Info(fmt.Sprintf("Publishing: %f to %s", newValue, p.topicRoot+field.Name))
 				token := client.Publish(p.topicRoot+field.Name, 0, false, fmt.Sprintf("%.1f", newValue))
@@ -155,19 +171,20 @@ func (p *Publisher) publishMQTT(retry bool) {
 		case reflect.Int:
 			oldValue := elemOld.Int()
 			newValue := elemNew.Int()
-			// diag.Info(fmt.Sprintf("Int value: %d -> %d", oldValue, newValue))
+			// diag.Info(fmt.Sprintf("Int value: %d -> %d (%s)", oldValue, newValue, p.topicRoot+field.Name))
 			if diff := math.Abs(float64(oldValue - newValue)); diff > TOLERANCE {
 				// diag.Info(fmt.Sprintf("Publishing: %d", newValue))
 				token := client.Publish(p.topicRoot+field.Name, 0, false, fmt.Sprintf("%d", newValue))
 				token.Wait()
 			}
 		case reflect.String:
-			// diag.Info(fmt.Sprintf("String value: %s -> %s", elemOld.String(), elemNew.String()))
+			// diag.Info(fmt.Sprintf("String value: %s -> %s (%s)", elemOld.String(), elemNew.String(), p.topicRoot+field.Name))
 			if strings.Compare(elemNew.String(), elemOld.String()) != 0 {
 				token := client.Publish(p.topicRoot+field.Name, 0, false, elemNew.String())
 				token.Wait()
 			}
 		default:
+			// diag.Info(fmt.Sprintf("Other value: %s -> %s (%s)", elemOld.String(), elemNew.String(), p.topicRoot+field.Name))
 			// elemNew.Type().String() is always time.Time
 			timeValue, _ := elemNew.Interface().(time.Time)
 			token := client.Publish(p.topicRoot+field.Name, 0, false, timeValue.Format("2006-01-02 15:04:05"))

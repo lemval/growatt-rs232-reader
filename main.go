@@ -19,6 +19,7 @@ var action string
 var broker string
 var topic string
 var verbose bool
+var delay int
 
 func init() {
 	flag.StringVar(&action, "action", "Start", "The action (Start or Init).")
@@ -27,11 +28,12 @@ func init() {
 	flag.StringVar(&topic, "topic", "Growatt", "MQTT topic /solar/<topic>/<item>.")
 	flag.IntVar(&speed, "baudrate", 9600, "The baud rate of the serial connection.")
 	flag.IntVar(&port, "server", 5701, "The server port for the REST service.")
+	flag.IntVar(&delay, "delay", 0, "Period (seconds) of delay to publish values on MQTT.")
 	flag.BoolVar(&verbose, "v", false, "Activate verbose logging.")
 }
 
 func main() {
-	diag.Info("Starting Growatt Inverter Reader v1.200")
+	diag.Info("Starting Growatt Inverter Reader v1.300")
 
 	//	Read the command line arguments
 	flag.Parse()
@@ -73,7 +75,7 @@ func actionStart(reader *reader.Reader) {
 	// read data, interpret to datagrams and publish as json
 
 	interpreter := NewInterpreter(reader.GetQueue())
-	publisher := NewPublisher()
+	publisher := NewPublisher(delay)
 
 	go reader.StartMonitored()
 	go interpreter.start()

@@ -133,9 +133,15 @@ func (i *Interpreter) start() {
 func (i *Interpreter) updateToDatagram(status ...string) {
 	// Update to an empty datagram with updated time
 	i.lock.Lock()
+	// But keep the accumulated data
+	day := i.lastData.DayProduction
+	total := i.lastData.TotalProduction
+
 	i.lastData = NewDatagram()
 	if status != nil && len(status) > 0 {
 		i.lastData.Status = status[0]
+		i.lastData.DayProduction = day
+		i.lastData.TotalProduction = total
 	}
 	i.lock.Unlock()
 }
