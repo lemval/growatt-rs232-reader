@@ -9,8 +9,8 @@ Example output of ```http://127.0.0.1:5701/status```:
   "VoltagePV2": 0,
   "VoltageBus": 380.6,
   "VoltageGrid": 225.7,                   *
-  "TotalProduction": 3822.6,              *
-  "DayProduction": 0.7,                   *
+  "TotalProduction": 3822.6,              
+  "DayProduction": 0.7,
   "Frequency": 49.99,                     *
   "Power": 798.4,                         *
   "Temperature": 26.9,                    *
@@ -51,6 +51,8 @@ Usage: ./growatt <options>
         The server port for the REST service. (default 5701)
   -topic string
         MQTT topic /solar/<topic>/<item>. (default "Growatt")
+  -delay int
+        Period (seconds) of delay to publish values on MQTT. (default 0)
   -v    Activate verbose logging.
 
 ## MQTT
@@ -75,9 +77,7 @@ If you want to initialise the inverter manually, use ```./growatt --action Init`
  
 ## Required
 
-You need a 'USB to serial' converter. Remove the little plate to expose the RS2323 port and connect the cable. Connect the USB-side to a Raspberry Pi or other device. Using a Raspberry the serial output should NOT be activated (raspi-config).
-
-Example cable: https://www.aliexpress.com/item/Adapter-Convertor-USB-to-RS232-Serial-Port-9-Pin-DB9-Cable-Serial-COM-Port-free/32318476207.html
+You need a 'USB to serial' converter. Remove the little plate to expose the RS232 port and connect the cable. Connect the USB-side to a Raspberry Pi or other device. Using a Raspberry the serial output should NOT be activated (raspi-config).
 
 ## Openhab HTTP
 
@@ -107,7 +107,7 @@ Note that on power down of the inverter there will be values missing from the JS
 
 ## Openhab MQTT
 
-* Install a MQTT broker somewhere (e.g. Mosquitto)
+* Install a MQTT broker somewhere (e.g. Mosquitto on your Openhab system)
 * Install the MQTT binding
 * Install a Thing of type MQTT broker and configure for your server
 * Install a Thing of type Generic MQTT Thing and select the broker
