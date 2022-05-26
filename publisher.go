@@ -32,10 +32,12 @@ type Publisher struct {
 	status *Status
 
 	prevData   *Datagram
+	prevMqtt   *Datagram
 	nextUpdate time.Time
 	opts       *mqtt.ClientOptions
 	topicRoot  string
 	period     int
+	publishDay int
 }
 
 func NewPublisher(delay int) *Publisher {
@@ -43,8 +45,10 @@ func NewPublisher(delay int) *Publisher {
 	p.status = new(Status)
 	p.data = NewDatagram()
 	p.prevData = p.data
+	p.prevMqtt = p.data
 	p.period = delay
 	p.nextUpdate = time.Now()
+	p.publishDay = time.Now().Day()
 
 	if broker != "" {
 		diag.Info("Using MQTT via : " + broker + " on /solar/" + topic)
@@ -86,17 +90,26 @@ func (p *Publisher) start(port int) {
 func (p *Publisher) listen(supplier *Interpreter, reader *reader.Reader) {
 
 	var prevStatus string
+	var statusUpdated bool
 
 	for {
 		p.status.Interpreter = supplier.status
 		p.status.Reader = reader.Status
 		p.status.Init = reader.InitStatus
+		statusUpdated = false
 
 		data := supplier.getDatagram()
 		if data != nil {
 			if strings.Compare(prevStatus, data.Status) != 0 {
 				diag.Info("Set datagram: " + data.Status + " on " + time.Now().Format("15:04:05"))
 				prevStatus = data.Status
+				statusUpdated = true
+			}
+			day := time.Now().Day()
+			if day != p.publishDay {
+				p.publishDay = day
+				data.DayProduction = 0
+				statusUpdated = true
 			}
 			p.status.Publisher = "Data:" + data.Status
 			p.prevData = p.data
@@ -108,7 +121,7 @@ func (p *Publisher) listen(supplier *Interpreter, reader *reader.Reader) {
 		}
 
 		if p.opts != nil {
-			p.publishMQTT(false)
+			p.publishMQTT(false, statusUpdated)
 		}
 
 		time.Sleep(500 * time.Millisecond)
@@ -118,13 +131,13 @@ func (p *Publisher) listen(supplier *Interpreter, reader *reader.Reader) {
 /*
 	Listen to the supplier and keep track of statuses
 */
-func (p *Publisher) publishMQTT(retry bool) {
+func (p *Publisher) publishMQTT(retry bool, statusUpdated bool) {
 
 	if p.data == nil {
 		return
 	}
 
-	if p.period > 0 {
+	if !statusUpdated && p.period > 0 {
 		if time.Now().Before(p.nextUpdate) {
 			// Update later
 			return
@@ -136,7 +149,7 @@ func (p *Publisher) publishMQTT(retry bool) {
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
 		if !retry {
 			p.initMqttConnection()
-			p.publishMQTT(true)
+			p.publishMQTT(true, statusUpdated)
 		} else {
 			diag.Warn("MQTT not available!")
 			return
@@ -148,7 +161,7 @@ func (p *Publisher) publishMQTT(retry bool) {
 	// Use reflection to handle fields in data type
 	fields := reflect.TypeOf(*p.data)
 	valuesNew := reflect.ValueOf(*p.data)
-	valuesOld := reflect.ValueOf(*p.prevData)
+	valuesOld := reflect.ValueOf(*p.prevMqtt)
 	num := fields.NumField()
 
 	const TOLERANCE = 0.00001
@@ -191,6 +204,8 @@ func (p *Publisher) publishMQTT(retry bool) {
 			token.Wait()
 		}
 	}
+	p.prevMqtt = p.data
+
 	client.Disconnect(250)
 }
 

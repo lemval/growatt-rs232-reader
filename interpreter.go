@@ -29,7 +29,7 @@ type Datagram struct {
 	VoltageBus      float32 `json:",omitempty"`
 	VoltageGrid     float32 `json:",omitempty"`
 	TotalProduction float32 `json:",omitempty"`
-	DayProduction   float32 `json:",omitempty"`
+	DayProduction   float32
 	Frequency       float32 `json:",omitempty"`
 	Temperature     float32 `json:",omitempty"`
 	OperationHours  float32 `json:",omitempty"`
@@ -81,7 +81,7 @@ func (i *Interpreter) start() {
 				if !i.hasSlept {
 					diag.Warn("Processing will sleep now.")
 				}
-				i.updateToDatagram()
+				i.updateToDatagram("Sleeping")
 
 				// Sleep
 				i.inputQueue.Clear()
@@ -106,7 +106,7 @@ func (i *Interpreter) start() {
 				idx = 0
 			} else if idx >= 40 {
 				i.status = "Receiving wrong data"
-				i.updateToDatagram()
+				i.updateToDatagram("Invalid")
 
 				diag.Verbose(hex.Dump(buffer[0:idx]))
 
@@ -130,18 +130,23 @@ func (i *Interpreter) start() {
 	}
 }
 
-func (i *Interpreter) updateToDatagram(status ...string) {
+func (i *Interpreter) updateToDatagram(status string) {
 	// Update to an empty datagram with updated time
 	i.lock.Lock()
 	// But keep the accumulated data
-	day := i.lastData.DayProduction
-	total := i.lastData.TotalProduction
-
+	var day float32
+	var total float32
+	if i.lastData != nil {
+		day = i.lastData.DayProduction
+		total = i.lastData.TotalProduction
+	}
 	i.lastData = NewDatagram()
-	if status != nil && len(status) > 0 {
-		i.lastData.Status = status[0]
+	i.lastData.TotalProduction = total
+	i.lastData.DayProduction = 0
+	i.lastData.Status = status
+
+	if i.lastUpdate.Day() == time.Now().Day() {
 		i.lastData.DayProduction = day
-		i.lastData.TotalProduction = total
 	}
 	i.lock.Unlock()
 }
