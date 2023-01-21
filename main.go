@@ -20,20 +20,26 @@ var broker string
 var topic string
 var verbose bool
 var delay int
+var user string
+var credential string
 
 func init() {
 	flag.StringVar(&action, "action", "Start", "The action (Start or Init).")
 	flag.StringVar(&device, "device", "/dev/ttyUSB0", "The serial port descriptor.")
 	flag.StringVar(&broker, "broker", "", "Connect to MQTT broker (e.g. tcp://localhost:1883).")
 	flag.StringVar(&topic, "topic", "Growatt", "MQTT topic /solar/<topic>/<item>.")
+	flag.StringVar(&user, "user", "", "MQTT user (leave empty to use unauthorized).")
+	flag.StringVar(&credential, "password", "", "MQTT password.")
 	flag.IntVar(&speed, "baudrate", 9600, "The baud rate of the serial connection.")
 	flag.IntVar(&port, "server", 5701, "The server port for the REST service.")
 	flag.IntVar(&delay, "delay", 0, "Period (seconds) of delay to publish values on MQTT.")
 	flag.BoolVar(&verbose, "v", false, "Activate verbose logging.")
 }
 
+var Version = "v1.400"
+
 func main() {
-	diag.Info("Starting Growatt Inverter Reader v1.301")
+	diag.Info("Starting Growatt Inverter Reader " + Version)
 
 	//	Read the command line arguments
 	flag.Parse()

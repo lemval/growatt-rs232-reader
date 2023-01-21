@@ -53,9 +53,17 @@ Usage: ./growatt <options>
         MQTT topic /solar/<topic>/<item>. (default "Growatt")
   -delay int
         Period (seconds) of delay to publish values on MQTT. (default 0)
-  -v    Activate verbose logging.
+  -user string
+		MQTT user (leave empty to use unauthorized)
+  -password
+		MQTT password
+  -v    
+		Activate verbose logging
 
 ## MQTT
+
+As of version 1.4, Home Assistant Auto Discovery is supported as well as support for authentication.
+Note that the Timestamp format has been altered between v1.3 and v1.4!
 
 ## Status
 
@@ -78,6 +86,10 @@ If you want to initialise the inverter manually, use ```./growatt --action Init`
 ## Required
 
 You need a 'USB to serial' converter. Remove the little plate to expose the RS232 port and connect the cable. Connect the USB-side to a Raspberry Pi or other device. Using a Raspberry the serial output should NOT be activated (raspi-config).
+
+## Home Assistant
+
+Make sure you have the MQTT plugin up and running. Discovery is automatic as long as publishing is to the HA-monitored server. For example, use https://www.home-assistant.io/integrations/mqtt
 
 ## Openhab HTTP
 
@@ -141,7 +153,7 @@ The init string for the converter is fixed.
 
 *MIT*
 
-Copyright 2018-2021 lemval@gmail.com
+Copyright 2018-2023 lemval@gmail.com
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
