@@ -154,12 +154,15 @@ func (i *Interpreter) updateToDatagram(status string) {
 	// But keep the accumulated data
 	var day float32
 	var total float32
+	var hours float32
 	if i.lastData != nil {
 		day = i.lastData.DayProduction
 		total = i.lastData.TotalProduction
+		hours = i.lastData.OperationHours
 	}
 	i.lastData = NewDatagram()
 	i.lastData.TotalProduction = total
+	i.lastData.OperationHours = hours
 	i.lastData.DayProduction = 0
 	i.lastData.Status = status
 
