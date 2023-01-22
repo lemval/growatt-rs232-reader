@@ -241,7 +241,13 @@ func (p *Publisher) publishMQTT(retry bool, statusUpdated bool) {
 		case reflect.Float32:
 			oldValue := elemOld.Float()
 			newValue := elemNew.Float()
-			if diff := math.Abs(oldValue - newValue); diff > TOLERANCE {
+			if precision >= 0 {
+				factor := math.Pow10(precision)
+				oldValue = math.Round(oldValue*factor) / factor
+				newValue = math.Round(newValue*factor) / factor
+			}
+			diff := math.Abs(oldValue - newValue)
+			if statusUpdated || diff > TOLERANCE {
 				// diag.Info(fmt.Sprintf("Publishing: %f -> %f to %s", oldValue, newValue, p.topicRoot+field.Name))
 				token := client.Publish(p.topicRoot+field.Name, 0, false, fmt.Sprintf("%.1f", newValue))
 				token.Wait()
@@ -250,14 +256,14 @@ func (p *Publisher) publishMQTT(retry bool, statusUpdated bool) {
 			oldValue := elemOld.Int()
 			newValue := elemNew.Int()
 			// diag.Info(fmt.Sprintf("Int value: %d -> %d (%s)", oldValue, newValue, p.topicRoot+field.Name))
-			if diff := math.Abs(float64(oldValue - newValue)); diff > TOLERANCE {
+			if diff := math.Abs(float64(oldValue - newValue)); statusUpdated || diff > TOLERANCE {
 				// diag.Info(fmt.Sprintf("Publishing: %d", newValue))
 				token := client.Publish(p.topicRoot+field.Name, 0, false, fmt.Sprintf("%d", newValue))
 				token.Wait()
 			}
 		case reflect.String:
 			// diag.Info(fmt.Sprintf("String value: %s -> %s (%s)", elemOld.String(), elemNew.String(), p.topicRoot+field.Name))
-			if strings.Compare(elemNew.String(), elemOld.String()) != 0 {
+			if statusUpdated || strings.Compare(elemNew.String(), elemOld.String()) != 0 {
 				// Only one is currently 'Status' which should be retained
 				token := client.Publish(p.topicRoot+field.Name, 0, true, elemNew.String())
 				token.Wait()

@@ -57,6 +57,8 @@ Usage: ./growatt <options>
 		MQTT user (leave empty to use unauthorized)
   -password
 		MQTT password
+  -precision int
+        Number of decimals for sensor values (default no rounding)
   -v    
 		Activate verbose logging
 

@@ -22,6 +22,7 @@ var verbose bool
 var delay int
 var user string
 var credential string
+var precision int
 
 func init() {
 	flag.StringVar(&action, "action", "Start", "The action (Start or Init).")
@@ -34,9 +35,10 @@ func init() {
 	flag.IntVar(&port, "server", 5701, "The server port for the REST service.")
 	flag.IntVar(&delay, "delay", 0, "Period (seconds) of delay to publish values on MQTT.")
 	flag.BoolVar(&verbose, "v", false, "Activate verbose logging.")
+	flag.IntVar(&precision, "precision", -1, "Number of decimals for rounding")
 }
 
-var Version = "v1.400"
+var Version = "v1.500"
 
 func main() {
 	diag.Info("Starting Growatt Inverter Reader " + Version)
