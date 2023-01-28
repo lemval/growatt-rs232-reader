@@ -2,6 +2,39 @@
 
 This reader allows some Growatt Inverters to publish data on a REST endpoint and optionally MQTT topic.
 
+## Releases
+
+1.5 - Fix DayProduction, improved HA discovery, added precision setting
+1.4 - Support for Home Assistant, supported MQTT credentials
+
+## Usage
+
+Usage: ./growatt <options>
+  -action string
+        The action (Start or Init). (default "Start")
+  -baudrate int
+        The baud rate of the serial connection. (default 9600)
+  -broker string
+        Connect to MQTT broker (e.g. tcp://localhost:1883).
+  -device string
+        The serial port descriptor. (default "/dev/ttyUSB0")
+  -server int
+        The server port for the REST service. (default 5701)
+  -topic string
+        MQTT topic /solar/<topic>/<item>. (default "Growatt")
+  -delay int
+        Period (seconds) of delay to publish values on MQTT. (default 0)
+  -user string
+		MQTT user (leave empty to use unauthorized)
+  -password
+		MQTT password
+  -precision int
+        Number of decimals for sensor values (default no rounding)
+  -v    
+		Activate verbose logging
+
+## REST endpoint: what do you get?
+
 Example output of ```http://127.0.0.1:5701/status```:
 ```json
 {
@@ -36,36 +69,11 @@ Additional information can be retrieved using: ```curl http://localhost:5701/inf
 
 Above is a perfectly legal state as long as the times are within 10 minutes of the current time. Note that startup takes several seconds.
 
-## Usage
-
-Usage: ./growatt <options>
-  -action string
-        The action (Start or Init). (default "Start")
-  -baudrate int
-        The baud rate of the serial connection. (default 9600)
-  -broker string
-        Connect to MQTT broker (e.g. tcp://localhost:1883).
-  -device string
-        The serial port descriptor. (default "/dev/ttyUSB0")
-  -server int
-        The server port for the REST service. (default 5701)
-  -topic string
-        MQTT topic /solar/<topic>/<item>. (default "Growatt")
-  -delay int
-        Period (seconds) of delay to publish values on MQTT. (default 0)
-  -user string
-		MQTT user (leave empty to use unauthorized)
-  -password
-		MQTT password
-  -precision int
-        Number of decimals for sensor values (default no rounding)
-  -v    
-		Activate verbose logging
-
 ## MQTT
 
-As of version 1.4, Home Assistant Auto Discovery is supported as well as support for authentication.
-Note that the Timestamp format has been altered between v1.3 and v1.4!
+As of version 1.4, Home Assistant Auto Discovery is supported as well as support for authentication. For Openhab, see below. Note that the Timestamp format has been altered between v1.3 and v1.4!
+
+If configured, status attributes are published as separate topics. Info attributes are not published.
 
 ## Status
 
