@@ -38,22 +38,29 @@ type Datagram struct {
 	Timestamp       time.Time
 }
 
-func HomeAssistantConfig() [13][4]string {
-	return [...][4]string{
-		{"Power", "power", "W", "6dbbd634-cfcc-4ecf-b2e8-130708511b24"},
-		{"VoltagePV1", "voltage", "V", "fc65022e-2db6-405d-9900-80f981b42c21"},
-		{"VoltagePV2", "voltage", "V", "6354256e-520f-48d7-a2da-dc307fcfddf5"},
-		{"VoltageBus", "voltage", "V", "a95a0291-4340-4b93-a07b-aa1b17e917a8"},
-		{"VoltageGrid", "voltage", "V", "8ab07337-e58a-473b-b61b-560596c9621c"},
-		{"TotalProduction", "energy", "kWh", "496138a6-aba6-4aca-a47d-9b9aa7aa05a4"},
-		{"DayProduction", "energy", "kWh", "14ef721f-8225-44e1-bbc9-ebe603ea1d81"},
-		{"Frequency", "frequency", "Hz", "851bec08-3410-4227-8e84-5cbcb176329a"},
-		{"Temperature", "temperature", "°C", "490abec4-b9a0-4b34-933b-a1206fa51cc0"},
-		{"OperationHours", "duration", "h", "5d82c4fd-8fb6-4465-a402-fcde57ac464f"},
-		{"Status", "", "", "edcd66f5-dc8a-442b-b1f1-fd599dbbf4b0"},
-		{"FaultCode", "", "", "5695793e-8dfb-4a8e-89d6-7bfb9cf99cd8"},
-		{"Timestamp", "date", "", "21b5c51c-2e87-4b57-a999-02375e033bf2"},
-	}
+type ChannelConfig struct {
+	name   string
+	device string
+	unit   string
+	state  string
+	id     string
+}
+
+func HomeAssistantConfig() [13]ChannelConfig {
+	return [...]ChannelConfig{
+		ChannelConfig{name: "Power", device: "power", unit: "W", id: "6dbbd634-cfcc-4ecf-b2e8-130708511b24"},
+		ChannelConfig{name: "VoltagePV1", device: "voltage", unit: "V", id: "fc65022e-2db6-405d-9900-80f981b42c21"},
+		ChannelConfig{name: "VoltagePV2", device: "voltage", unit: "V", id: "6354256e-520f-48d7-a2da-dc307fcfddf5"},
+		ChannelConfig{name: "VoltageBus", device: "voltage", unit: "V", id: "a95a0291-4340-4b93-a07b-aa1b17e917a8"},
+		ChannelConfig{name: "VoltageGrid", device: "voltage", unit: "V", id: "8ab07337-e58a-473b-b61b-560596c9621c"},
+		ChannelConfig{name: "TotalProduction", device: "energy", unit: "kWh", state: "total", id: "496138a6-aba6-4aca-a47d-9b9aa7aa05a4"},
+		ChannelConfig{name: "DayProduction", device: "energy", unit: "kWh", state: "total_increasing", id: "14ef721f-8225-44e1-bbc9-ebe603ea1d81"},
+		ChannelConfig{name: "Frequency", device: "frequency", unit: "Hz", id: "851bec08-3410-4227-8e84-5cbcb176329a"},
+		ChannelConfig{name: "Temperature", device: "temperature", unit: "°C", id: "490abec4-b9a0-4b34-933b-a1206fa51cc0"},
+		ChannelConfig{name: "OperationHours", device: "duration", unit: "h", state: "total", id: "5d82c4fd-8fb6-4465-a402-fcde57ac464f"},
+		ChannelConfig{name: "Status", id: "edcd66f5-dc8a-442b-b1f1-fd599dbbf4b0"},
+		ChannelConfig{name: "FaultCode", id: "5695793e-8dfb-4a8e-89d6-7bfb9cf99cd8"},
+		ChannelConfig{name: "Timestamp", device: "timestamp", id: "21b5c51c-2e87-4b57-a999-a4025e033bf2"}}
 }
 
 func NewInterpreter(inque *reader.Queue) *Interpreter {

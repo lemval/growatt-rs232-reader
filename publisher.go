@@ -107,26 +107,31 @@ func (p *Publisher) discoveryHomeAssist() {
 			ItemEnd("manufacturer", "Growatt"))
 
 		class := ""
-		if item[1] != "" {
-			class = Item("device_class", item[1])
+		if item.device != "" {
+			class = Item("device_class", item.device)
 		}
 
 		unit := ""
-		if item[2] != "" {
-			unit = Item("unit_of_measurement", item[2])
+		if item.unit != "" {
+			unit = Item("unit_of_measurement", item.unit)
+		}
+		state := ""
+		if item.state != "" {
+			state = Item("state_class", item.state)
 		}
 		payload := "{" +
-			Item("name", item[0]) +
+			Item("name", item.name) +
 			class +
 			unit +
+			state +
 			device +
-			Item("object_id", topic+"_"+item[0]) +
-			Item("unique_id", item[3]) +
-			ItemEnd("state_topic", "/solar/"+topic+"/"+item[0]) +
+			Item("object_id", topic+"_"+item.name) +
+			Item("unique_id", item.id) +
+			ItemEnd("state_topic", "/solar/"+topic+"/"+item.name) +
 			"}"
 
 		client.Publish(
-			"homeassistant/sensor/"+topic+"/"+item[0]+"/config",
+			"homeassistant/sensor/"+topic+"/"+item.name+"/config",
 			0, true,
 			payload).Wait()
 	}
@@ -167,12 +172,13 @@ func (p *Publisher) listen(supplier *Interpreter, reader *reader.Reader) {
 		data := supplier.getDatagram()
 		if data != nil {
 			if strings.Compare(prevStatus, data.Status) != 0 {
-				diag.Info("Set datagram: " + data.Status + " on " + time.Now().Format("15:04:05"))
+				diag.Info("Status updated to " + data.Status + " on " + time.Now().Format("15:04:05"))
 				prevStatus = data.Status
 				statusUpdated = true
 			}
 			day := time.Now().Day()
 			if day != p.publishDay {
+				diag.Warn(fmt.Sprintf("Day updated from %d to %d", p.publishDay, day))
 				p.publishDay = day
 				data.DayProduction = 0
 				statusUpdated = true
@@ -181,6 +187,7 @@ func (p *Publisher) listen(supplier *Interpreter, reader *reader.Reader) {
 			p.prevData = p.data
 			p.data = data
 		} else {
+			diag.Info("Missing data on " + time.Now().Format("15:04:05"))
 			p.status.Publisher = "No datagram on " + time.Now().Format("15:04:05")
 			p.prevData = p.data
 			p.data = NewDatagram()
@@ -222,7 +229,10 @@ func (p *Publisher) publishMQTT(retry bool, statusUpdated bool) {
 		}
 	}
 
-	// diag.Info("Processing for MQTT: " + p.data.String())
+	// if statusUpdated {
+	// 	diag.Info("Processing for MQTT: " + p.data.String())
+	// 	diag.Info("Previous dataset   : " + p.prevData.String())
+	// }
 
 	// Use reflection to handle fields in data type
 	fields := reflect.TypeOf(*p.data)
@@ -247,6 +257,11 @@ func (p *Publisher) publishMQTT(retry bool, statusUpdated bool) {
 				newValue = math.Round(newValue*factor) / factor
 			}
 			diff := math.Abs(oldValue - newValue)
+
+			// if statusUpdated {
+			// 	diag.Info(fmt.Sprintf("On field: %s; publish: %t", field.Name, diff > TOLERANCE))
+			// 	diag.Info(fmt.Sprintf("From    : %f to %f", oldValue, newValue))
+			// }
 			if statusUpdated || diff > TOLERANCE {
 				// diag.Info(fmt.Sprintf("Publishing: %f -> %f to %s", oldValue, newValue, p.topicRoot+field.Name))
 				token := client.Publish(p.topicRoot+field.Name, 0, false, fmt.Sprintf("%.1f", newValue))
