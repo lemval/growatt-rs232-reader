@@ -48,19 +48,19 @@ type ChannelConfig struct {
 
 func HomeAssistantConfig() [13]ChannelConfig {
 	return [...]ChannelConfig{
-		ChannelConfig{name: "Power", device: "power", unit: "W", id: "6dbbd634-cfcc-4ecf-b2e8-130708511b24"},
-		ChannelConfig{name: "VoltagePV1", device: "voltage", unit: "V", id: "fc65022e-2db6-405d-9900-80f981b42c21"},
-		ChannelConfig{name: "VoltagePV2", device: "voltage", unit: "V", id: "6354256e-520f-48d7-a2da-dc307fcfddf5"},
-		ChannelConfig{name: "VoltageBus", device: "voltage", unit: "V", id: "a95a0291-4340-4b93-a07b-aa1b17e917a8"},
-		ChannelConfig{name: "VoltageGrid", device: "voltage", unit: "V", id: "8ab07337-e58a-473b-b61b-560596c9621c"},
-		ChannelConfig{name: "TotalProduction", device: "energy", unit: "kWh", state: "total", id: "496138a6-aba6-4aca-a47d-9b9aa7aa05a4"},
-		ChannelConfig{name: "DayProduction", device: "energy", unit: "kWh", state: "total_increasing", id: "14ef721f-8225-44e1-bbc9-ebe603ea1d81"},
-		ChannelConfig{name: "Frequency", device: "frequency", unit: "Hz", id: "851bec08-3410-4227-8e84-5cbcb176329a"},
-		ChannelConfig{name: "Temperature", device: "temperature", unit: "°C", id: "490abec4-b9a0-4b34-933b-a1206fa51cc0"},
-		ChannelConfig{name: "OperationHours", device: "duration", unit: "h", state: "total", id: "5d82c4fd-8fb6-4465-a402-fcde57ac464f"},
-		ChannelConfig{name: "Status", id: "edcd66f5-dc8a-442b-b1f1-fd599dbbf4b0"},
-		ChannelConfig{name: "FaultCode", id: "5695793e-8dfb-4a8e-89d6-7bfb9cf99cd8"},
-		ChannelConfig{name: "Timestamp", device: "timestamp", id: "21b5c51c-2e87-4b57-a999-a4025e033bf2"}}
+		{name: "Power", device: "power", unit: "W", id: "6dbbd634-cfcc-4ecf-b2e8-130708511b24"},
+		{name: "VoltagePV1", device: "voltage", unit: "V", id: "fc65022e-2db6-405d-9900-80f981b42c21"},
+		{name: "VoltagePV2", device: "voltage", unit: "V", id: "6354256e-520f-48d7-a2da-dc307fcfddf5"},
+		{name: "VoltageBus", device: "voltage", unit: "V", id: "a95a0291-4340-4b93-a07b-aa1b17e917a8"},
+		{name: "VoltageGrid", device: "voltage", unit: "V", id: "8ab07337-e58a-473b-b61b-560596c9621c"},
+		{name: "TotalProduction", device: "energy", unit: "kWh", state: "total", id: "496138a6-aba6-4aca-a47d-9b9aa7aa05a4"},
+		{name: "DayProduction", device: "energy", unit: "kWh", state: "total_increasing", id: "14ef721f-8225-44e1-bbc9-ebe603ea1d81"},
+		{name: "Frequency", device: "frequency", unit: "Hz", id: "851bec08-3410-4227-8e84-5cbcb176329a"},
+		{name: "Temperature", device: "temperature", unit: "°C", id: "490abec4-b9a0-4b34-933b-a1206fa51cc0"},
+		{name: "OperationHours", device: "duration", unit: "h", state: "total", id: "5d82c4fd-8fb6-4465-a402-fcde57ac464f"},
+		{name: "Status", id: "edcd66f5-dc8a-442b-b1f1-fd599dbbf4b0"},
+		{name: "FaultCode", id: "5695793e-8dfb-4a8e-89d6-7bfb9cf99cd8"},
+		{name: "Timestamp", device: "timestamp", id: "21b5c51c-2e87-4b57-a999-a4025e033bf2"}}
 }
 
 func NewInterpreter(inque *reader.Queue) *Interpreter {
@@ -80,13 +80,13 @@ func NewDatagram() *Datagram {
 }
 
 /*
-	Reads from the input queue until a valid size block has been read
-	for creating a datagram. It will go into sleep mode if no data is
-	received within several seconds.
+Reads from the input queue until a valid size block has been read
+for creating a datagram. It will go into sleep mode if no data is
+received within several seconds.
 */
 func (i *Interpreter) start() {
 	diag.Info("Start interpreter...")
-	buffer := make([]byte, 40, 40)
+	buffer := make([]byte, 40)
 	idx := 0
 	errCount := 0
 	emptyCount := 0
@@ -180,8 +180,8 @@ func (i *Interpreter) updateToDatagram(status string) {
 }
 
 /*
-	Processes the 30 bytes to a valid datagram. If less or more bytes are
-	given, an error is produced and the data is dumped on screen.
+Processes the 30 bytes to a valid datagram. If less or more bytes are
+given, an error is produced and the data is dumped on screen.
 */
 func (i *Interpreter) createAndStoreDatagram(data []byte) {
 	if len(data) != 30 {
