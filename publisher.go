@@ -125,7 +125,7 @@ func (p *Publisher) discoveryHomeAssist() {
 			unit +
 			state +
 			device +
-			Item("object_id", topic+"_"+item.name) +
+			Item("default_entity_id", topic+"_"+item.name) +
 			Item("unique_id", item.id) +
 			ItemEnd("state_topic", "/solar/"+topic+"/"+item.name) +
 			"}"
