@@ -38,7 +38,7 @@ func init() {
 	flag.IntVar(&precision, "precision", -1, "Number of decimals for rounding")
 }
 
-var Version = "v1.500"
+var Version = "v1.60"
 
 func main() {
 	diag.Info("Starting Growatt Inverter Reader " + Version)

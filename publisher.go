@@ -51,7 +51,7 @@ func NewPublisher(delay int) *Publisher {
 	p.publishDay = time.Now().Day()
 
 	if broker != "" {
-		diag.Info("Using MQTT via : " + broker + " on /solar/" + topic)
+		diag.Info("Using MQTT via " + broker + " on /solar/" + topic)
 		if user != "" {
 			diag.Info("Authenticated with '" + user + "'.")
 		}
@@ -92,7 +92,7 @@ func _element(name string, value string, end bool) string {
 func (p *Publisher) discoveryHomeAssist() {
 	client := mqtt.NewClient(p.opts)
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
-		diag.Warn("MQTT not available!")
+		diag.Warn("MQTT not available while discovering!")
 		return
 	}
 
@@ -183,7 +183,7 @@ func (p *Publisher) listen(supplier *Interpreter, reader *reader.Reader) {
 				data.DayProduction = 0
 				statusUpdated = true
 			}
-			p.status.Publisher = "Data:" + data.Status
+			p.status.Publisher = data.Status
 			p.prevData = p.data
 			p.data = data
 		} else {
@@ -224,7 +224,7 @@ func (p *Publisher) publishMQTT(retry bool, statusUpdated bool) {
 			p.initMqttConnection()
 			p.publishMQTT(true, statusUpdated)
 		} else {
-			diag.Warn("MQTT not available!")
+			diag.Warn("Could not publish MQTT message!")
 			return
 		}
 	}
@@ -242,7 +242,7 @@ func (p *Publisher) publishMQTT(retry bool, statusUpdated bool) {
 
 	const TOLERANCE = 0.00001
 
-	for i := 0; i < num; i++ {
+	for i := range num {
 		field := fields.Field(i)
 		elemNew := valuesNew.Field(i)
 		elemOld := valuesOld.Field(i)

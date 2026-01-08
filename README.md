@@ -4,6 +4,7 @@ This reader allows some Growatt Inverters to publish data on a REST endpoint and
 
 ## Releases
 
+1.6 - Library upgrade, HA discovery upgrade and some code improvements
 1.5 - Fix DayProduction, improved HA discovery, added precision setting
 1.4 - Support for Home Assistant, supported MQTT credentials
 
@@ -60,8 +61,8 @@ Additional information can be retrieved using: ```curl http://localhost:5701/inf
 
 ```json
 {
-  "Reader":"Reading since 14:11:18",
-  "Interpreter":"Polling since 14:11:18",
+  "Reader":"Last read on 14:11:18",
+  "Interpreter":"Last poll on 14:11:18",
   "Publisher":"Normal",
   "Init":"OK"
 }
@@ -163,7 +164,7 @@ The init string for the converter is fixed.
 
 *MIT*
 
-Copyright 2018-2023 lemval@gmail.com
+Copyright 2018-2026 lemval@gmail.com
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 

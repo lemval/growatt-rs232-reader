@@ -94,7 +94,7 @@ func (i *Interpreter) start() {
 	for {
 		e := i.inputQueue.Pop()
 		if e == nil {
-			i.status = "Polling since " + i.lastUpdate.Format("15:04:05")
+			i.status = "Last poll on " + i.lastUpdate.Format("15:04:05")
 			// No input yet. Let's sleep...
 			time.Sleep(100 * time.Millisecond)
 

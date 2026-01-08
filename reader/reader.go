@@ -80,14 +80,12 @@ func (r *Reader) StartMonitored() {
 func (r *Reader) startPoking() {
 	for {
 		time.Sleep(1 * time.Minute)
-		span := time.Now().Sub(r.lastUpdate)
-		if span > 5*time.Minute {
-			diag.Warn("Poke needed. Reader can't read data.")
-			_ = r.connection.Close()
+		span := time.Since(r.lastUpdate)
+		if span > 15*time.Minute {
+			diag.Warn("Restart needed. Reader can't read data.")
+			// _ = r.connection.Close()
 			r.InitLogger()
-			diag.Verbose("Poke done.")
-		} else {
-			diag.Verbose("No poke needed.")
+			// diag.Verbose("Poke done.")
 		}
 	}
 }
@@ -206,14 +204,14 @@ func (r *Reader) start() bool {
 
 	buffer := make([]byte, 30)
 	for {
-		r.Status = "Reading since " + r.lastUpdate.Format("15:04:05")
+		r.Status = "Last read on " + r.lastUpdate.Format("15:04:05")
 		n, err := conn.Read(buffer)
 		if err != nil {
 			diag.Warn("Reading failed due to: " + err.Error())
 			break
 		}
 
-		span := time.Now().Sub(r.lastUpdate)
+		span := time.Since(r.lastUpdate)
 		r.lastUpdate = time.Now()
 		if span > 5*time.Minute {
 			diag.Warn("Respawning...")
@@ -231,7 +229,7 @@ func (r *Reader) start() bool {
 		// TODO Error because it keeps on reading and getting data. How to stop it?
 		// Verbose("Read bytes and pushing: " + strconv.Itoa(n))
 
-		for i := 0; i < n; i++ {
+		for i := range n {
 			r.dataqueue.Push(buffer[i])
 		}
 	}
