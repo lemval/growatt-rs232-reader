@@ -1,0 +1,12 @@
+wget https://github.com/lemval/growatt-rs232-reader/raw/master/release/growatt_pi2
+
+# For scp: apt-get install openssh-client 
+# For local usage: usermod -a -G dialout mylocaluser
+
+cd /etc/systemd/system
+ln -s /opt/growatt/growatt.service .
+cd /etc/systemd/system/multi-user.target.wants
+ln -s /opt/growatt/growatt.service .
+
+systemctl daemon-reload
+systemctl start growatt

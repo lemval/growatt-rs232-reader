@@ -1,0 +1,14 @@
+[Unit]
+Description=growatt
+After=network.target
+
+[Service]
+ExecStart=/opt/growatt/growatt -broker tcp://192.168.x.x:1883 -user myuser -password mypass -delay 5 -precision 2
+WorkingDirectory=/opt/growatt
+StandardOutput=file:/opt/growatt/growatt.out
+StandardError=file:/opt/growatt/growatt.err
+Restart=always
+User=root
+
+[Install]
+WantedBy=multi-user.target
